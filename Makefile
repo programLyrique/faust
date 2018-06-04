@@ -283,6 +283,7 @@ uninstall :
 # 	# install APIs
 # 	rm -rf $(prefix)/share/faust/api/
 # 	cp -r architecture/api $(prefix)/share/faust/
+	cp -r architecture/sam $(prefix)/share/faust/
 # 
 # 	# install nodejs
 # 	rm -rf $(prefix)/share/faust/nodejs/

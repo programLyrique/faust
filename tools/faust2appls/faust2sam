@@ -154,3 +154,6 @@ ZIPOUT="$APIFOLDER.zip"
 rm $ZIPOUT 2> /dev/null || true
 zip -r $ZIPOUT $APIFOLDER > /dev/null || exit 1
 rm -r $APIFOLDER || exit 1
+
+# echos generated files for FaustWorks
+echo "$ZIPOUT;"

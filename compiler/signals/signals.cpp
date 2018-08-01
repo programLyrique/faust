@@ -610,9 +610,9 @@ Tree sigSoundfileChannels(Tree sf)
 {
     return tree(gGlobal->SIGSOUNDFILECHANNELS, sf);
 }
-Tree sigSoundfileBuffer(Tree sf, Tree chan, Tree ridx)
+Tree sigSoundfileBuffer(Tree sf, Tree chan, Tree fpart, Tree ridx)
 {
-    return tree(gGlobal->SIGSOUNDFILEBUFFER, sf, chan, ridx);
+    return tree(gGlobal->SIGSOUNDFILEBUFFER, sf, chan, fpart, ridx);
 }
 
 bool isSigSoundfile(Tree s, Tree& label)
@@ -631,9 +631,9 @@ bool isSigSoundfileChannels(Tree s, Tree& sf)
 {
     return isTree(s, gGlobal->SIGSOUNDFILECHANNELS, sf);
 }
-bool isSigSoundfileBuffer(Tree s, Tree& sf, Tree& chan, Tree& ridx)
+bool isSigSoundfileBuffer(Tree s, Tree& sf, Tree& chan, Tree& fpart, Tree& ridx)
 {
-    return isTree(s, gGlobal->SIGSOUNDFILEBUFFER, sf, chan, ridx);
+    return isTree(s, gGlobal->SIGSOUNDFILEBUFFER, sf, chan, fpart, ridx);
 }
 /*****************************************************************************
                              matrix extension

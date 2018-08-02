@@ -57,8 +57,13 @@ struct itemInfo {
     std::vector<std::pair<std::string, std::string> > meta;
 };
 
+// Menu {'low' : 440.0; 'mid' : 880.0; 'hi' : 1760.0}
 bool parseMenuList(const char*& p, vector<string>& names, vector<double>& values);
 bool parseMenuItem(const char*& p, string& name, double& value);
+
+// Menu {'foo.wav'; 'bar.wav'}
+bool parseMenuList2(const char*& p, vector<string>& names);
+bool parseMenuItem2(const char*& p, string& name);
 
 void skipBlank(const char*& p);
 bool parseChar(const char*& p, char x);
@@ -111,6 +116,32 @@ inline bool parseMenuList(const char*& p, vector<string>& names, vector<double>&
     return false;
 }
 
+inline bool parseMenuList2(const char*& p, vector<string>& names)
+{
+    vector<string> tmpnames;
+    
+    const char* saved = p;
+    
+    if (parseChar(p, '{')) {
+        do {
+            string n;
+            if (parseMenuItem2(p, n)) {
+                tmpnames.push_back(n);
+            } else {
+                p = saved;
+                return false;
+            }
+        } while (parseChar(p, ';'));
+        if (parseChar(p, '}')) {
+            // we suceeded
+            names = tmpnames;
+            return true;
+        }
+    }
+    p = saved;
+    return false;
+}
+
 /**
  * @brief parseMenuItem, parse a menu item ...'low':440.0...
  * @param p the string to parse, then the remaining string
@@ -122,6 +153,17 @@ inline bool parseMenuItem(const char*& p, string& name, double& value)
 {
     const char* saved = p;
     if (parseSQString(p, name) && parseChar(p, ':') && parseDouble(p, value)) {
+        return true;
+    } else {
+        p = saved;
+        return false;
+    }
+}
+
+inline bool parseMenuItem2(const char*& p, string& name)
+{
+    const char* saved = p;
+    if (parseSQString(p, name)) {
         return true;
     } else {
         p = saved;

@@ -23,6 +23,8 @@
 #define _SIMPLIFY_
 
 Tree simplify(Tree sig);
+Tree castAndPromotion(Tree L1);
+
 Tree docTableConvertion(Tree sig);
 
 #endif

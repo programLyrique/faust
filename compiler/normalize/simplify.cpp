@@ -76,6 +76,11 @@ Tree simplify(Tree sig)
     return sigMap(gGlobal->SIMPLIFIED, traced_simplification, sig);
 }
 
+Tree castAndPromotion(Tree L1)
+{
+    return L1;  // not implemented yet
+}
+
 // Implementation
 
 static Tree simplification(Tree sig)

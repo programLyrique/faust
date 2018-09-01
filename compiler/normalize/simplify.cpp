@@ -78,7 +78,7 @@ Tree simplify(Tree sig)
 
 Tree castAndPromotion(Tree L1)
 {
-    return L1;  // not implemented yet
+    return L1;
 }
 
 // Implementation

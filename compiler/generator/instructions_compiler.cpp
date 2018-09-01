@@ -34,6 +34,7 @@
 #include "privatise.hh"
 #include "recursivness.hh"
 #include "sigToGraph.hh"
+#include "sigTransform.hh"
 #include "sigprint.hh"
 #include "sigtyperules.hh"
 #include "simplify.hh"
@@ -144,10 +145,37 @@ Tree InstructionsCompiler::prepare(Tree LS)
     startTiming("deBruijn2Sym");
     Tree L1 = deBruijn2Sym(LS);  // convert debruijn recursion into symbolic recursion
     endTiming("deBruijn2Sym");
-    startTiming("second simplification");
-    Tree L2 = simplify(L1);  // simplify by executing every computable operation
-    endTiming("second simplification");
-    Tree L3 = privatise(L2);  // Un-share tables with multiple writers
+
+    startTiming("L1 typeAnnotation");
+    typeAnnotation(L1);  // Annotate L1 with type information (needed by castAndPromotion())
+    endTiming("L1 typeAnnotation");
+
+    // Test transformations
+    {
+        SignalIdentity P;
+        // cerr << "SignalIdentity 1" << endl;
+        Tree lr = P.mapself(L1);
+        // cerr << "SignalIdentity 2" << endl;
+        if (lr == L1) {
+            // cerr << "SignalIdentity 3: SUCCESS" << endl;
+        } else {
+            cerr << "SignalIdentity 3: FAILURE" << endl;
+            exit(1);
+        }
+    }
+    // End Test
+
+    startTiming("Cast and Promotion");
+    // Tree L2a = castAndPromotion(L1);  // Automatically adds explicit int or float casts when needed
+    SignalPromotion SP;
+    Tree            L2a = SP.mapself(L1);
+    endTiming("Cast and Promotion");
+
+    startTiming("simplification");
+    Tree L2b = simplify(L2a);  // simplify by executing every computable operation
+    endTiming("simplification");
+
+    Tree L3 = privatise(L2b);  // Un-share tables with multiple writers
 
     // dump normal form
     if (gGlobal->gDumpNorm) {
@@ -157,12 +185,12 @@ Tree InstructionsCompiler::prepare(Tree LS)
 
     recursivnessAnnotation(L3);  // Annotate L3 with recursivness information
 
-    startTiming("typeAnnotation");
+    startTiming("L3 typeAnnotation");
     typeAnnotation(L3);  // Annotate L3 with type information
-    endTiming("typeAnnotation");
+    endTiming("L3 typeAnnotation");
 
     sharingAnalysis(L3);  // annotate L3 with sharing count
-    fOccMarkup.mark(L3);  // annotate L3 with occurences analysis
+    fOccMarkup.mark(L3);  // annotate L3 with occurrences analysis
     // annotationStatistics();
     endTiming("prepare");
 

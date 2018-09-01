@@ -52,6 +52,7 @@
 #include "propagate.hh"
 #include "recursivness.hh"
 #include "schema.h"
+#include "sigTransform.hh"
 #include "signals.hh"
 #include "sigprint.hh"
 #include "sigtype.hh"
@@ -786,9 +787,9 @@ static void printDeclareHeader(ostream& dst)
     }
 }
 
-    /****************************************************************
-                                    MAIN
-    *****************************************************************/
+/****************************************************************
+                                MAIN
+*****************************************************************/
 
 #ifdef OCPP_BUILD
 

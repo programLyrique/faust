@@ -38,7 +38,7 @@
 #include "simplify.hh"
 #include "xtended.hh"
 
-#undef TRACE
+#define TRACE
 
 // declarations
 

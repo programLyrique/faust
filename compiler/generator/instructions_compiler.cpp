@@ -172,6 +172,7 @@ Tree InstructionsCompiler::prepare(Tree LS)
     endTiming("Cast and Promotion");
 
     startTiming("simplification");
+    cerr << "simplify 175" << endl;
     Tree L2b = simplify(L2a);  // simplify by executing every computable operation
     endTiming("simplification");
 

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <map>
 #include "global.hh"
+#include "ppsig.hh"
 #include "property.hh"
 #include "signals.hh"
 #include "sigtyperules.hh"
@@ -252,7 +253,6 @@ Tree SignalPromotion::transformation(Tree sig)
         switch (i) {
             case kAdd:
             case kSub:
-            case kMul:
             case kRem:
             case kGT:
             case kLT:
@@ -267,6 +267,21 @@ Tree SignalPromotion::transformation(Tree sig)
                     // same types => no promotion needed
                     return sigBinOp(i, self(x), self(y));
                 }
+            case kMul:
+                if (tx->nature() != ty->nature()) {
+                    // we have to do a float promotion on x or y
+                    Tree r = sigBinOp(i, smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)));
+                    cerr << "kMul Promotion of " << ppsig(sig) << "\n"
+                         << "Result in " << ppsig(r) << endl;
+                    return r;
+                } else {
+                    // same types => no promotion needed
+                    Tree r = sigBinOp(i, self(x), self(y));
+                    cerr << "kMul (no promotion) of " << ppsig(sig) << "\n"
+                         << "Result in " << ppsig(r) << endl;
+                    return r;
+                }
+
             case kDiv:
                 // the result of a division is always a float
                 return sigBinOp(i, smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)));

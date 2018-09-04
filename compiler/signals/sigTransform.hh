@@ -34,15 +34,4 @@ class SignalIdentity : public Transform {
     virtual Tree transformation(Tree t);
 };
 
-// Make explicit automatic promotion to float
-class SignalPromotion : public Transform {
-    bool fVisitGen;
-
-   public:
-    SignalPromotion() : fVisitGen(true) {}
-    virtual Tree transformation(Tree sig);
-    Tree         smartIntCast(Type t, Tree sig);
-    Tree         smartFloatCast(Type t, Tree sig);
-};
-
 #endif

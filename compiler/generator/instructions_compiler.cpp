@@ -33,6 +33,7 @@
 #include "prim2.hh"
 #include "privatise.hh"
 #include "recursivness.hh"
+#include "sigPromotion.hh"
 #include "sigToGraph.hh"
 #include "sigTransform.hh"
 #include "sigprint.hh"

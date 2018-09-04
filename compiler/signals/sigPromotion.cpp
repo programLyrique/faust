@@ -55,6 +55,95 @@ Tree SignalPromotion::transformation(Tree sig)
     double r;
     Tree   c, sel, x, y, z, u, v, var, le, label, id, ff, largs, type, name, file, sf;
 
+    if (isSigFixDelay(sig, x, y)) {
+        return sigFixDelay(self(x), smartIntCast(getCertifiedSigType(y), self(y)));
+    }
+
+    // Binary operations
+    // kAdd, kSub, kMul, kDiv, kRem, kLsh, kRsh, kGT, kLT, kGE, kLE, kEQ, kNE, kAND, kOR, kXOR };
+    else if (isSigBinOp(sig, &i, x, y)) {
+        Type tx = getCertifiedSigType(x);
+        Type ty = getCertifiedSigType(y);
+
+        switch (i) {
+            case kAdd:
+            case kSub:
+            case kMul:
+            case kRem:
+            case kGT:
+            case kLT:
+            case kGE:
+            case kLE:
+            case kEQ:
+            case kNE:
+                if (tx->nature() == ty->nature()) {
+                    // same nature => no promotion needed
+                    return sigBinOp(i, self(x), self(y));
+                } else {
+                    // float promotion needed
+                    return sigBinOp(i, smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)));
+                }
+
+            case kDiv:
+                // the result of a division is always a float
+                return sigBinOp(i, smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)));
+            default:
+                // TODO: no clear rules here
+                return sigBinOp(i, self(x), self(y));
+        }
+    }
+
+    // Select2 and Select3
+    else if (isSigSelect2(sig, sel, x, y)) {
+        Type ts = getCertifiedSigType(sel);
+        Type tx = getCertifiedSigType(x);
+        Type ty = getCertifiedSigType(y);
+
+        if (tx->nature() == ty->nature()) {
+            // same nature => no promotion needed
+            return sigSelect2(smartIntCast(ts, self(sel)), self(x), self(y));
+        } else {
+            // float promotion needed
+            return sigSelect2(smartIntCast(ts, self(sel)), smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)));
+        }
+    } else if (isSigSelect3(sig, sel, x, y, z)) {
+        Type ts = getCertifiedSigType(sel);
+        Type tx = getCertifiedSigType(x);
+        Type ty = getCertifiedSigType(y);
+        Type tz = getCertifiedSigType(z);
+
+        if ((tx->nature() == ty->nature()) && (tx->nature() == tz->nature())) {
+            // same nature => no promotion needed
+            return sigSelect3(smartIntCast(ts, self(sel)), self(x), self(y), self(z));
+        } else {
+            // float promotion needed
+            return sigSelect3(smartIntCast(ts, self(sel)), smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)),
+                              smartFloatCast(tz, self(z)));
+        }
+    }
+
+    // Int and Float Cast
+    else if (isSigIntCast(sig, x)) {
+        return smartIntCast(getCertifiedSigType(x), self(x));
+    } else if (isSigFloatCast(sig, x)) {
+        return smartFloatCast(getCertifiedSigType(x), self(x));
+    }
+
+    // Other cases => identity transformation
+    else {
+        return SignalIdentity::transformation(sig);
+    }
+}
+
+#if 0
+
+
+Tree SignalPromotion::transformation(Tree sig)
+{
+    int    i;
+    double r;
+    Tree   c, sel, x, y, z, u, v, var, le, label, id, ff, largs, type, name, file, sf;
+
     if (getUserData(sig)) {
         vector<Tree> newBranches;
         for (Tree b : sig->branches()) {
@@ -240,3 +329,5 @@ Tree SignalPromotion::transformation(Tree sig)
     }
     return 0;
 }
+
+#endif

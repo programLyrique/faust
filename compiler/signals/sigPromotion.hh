@@ -4,7 +4,7 @@
 #include "sigTransform.hh"
 
 // Make explicit automatic promotion to float
-class SignalPromotion : public Transform {
+class SignalPromotion : public SignalIdentity {
     bool fVisitGen;
 
    public:

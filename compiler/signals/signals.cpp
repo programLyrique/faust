@@ -302,7 +302,7 @@ Tree sigIntCast(Tree t)
 
 Tree sigFloatCast(Tree t)
 {
-    cerr << "sigFloatCast(" << ppsig(t) << ")" << endl;
+    // cerr << "sigFloatCast(" << ppsig(t) << ")" << endl;
     Node n = t->node();
 
     int i;

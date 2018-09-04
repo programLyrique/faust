@@ -166,13 +166,15 @@ Tree InstructionsCompiler::prepare(Tree LS)
     // End Test
 
     startTiming("Cast and Promotion");
+    // cerr << "Start Cast and Promotion" << endl;
     // Tree L2a = castAndPromotion(L1);  // Automatically adds explicit int or float casts when needed
     SignalPromotion SP;
     Tree            L2a = SP.mapself(L1);
+    // cerr << "Stop Cast and Promotion" << endl;
     endTiming("Cast and Promotion");
 
     startTiming("simplification");
-    cerr << "simplify 175" << endl;
+    // cerr << "simplify 175" << endl;
     Tree L2b = simplify(L2a);  // simplify by executing every computable operation
     endTiming("simplification");
 

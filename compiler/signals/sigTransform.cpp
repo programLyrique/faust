@@ -271,14 +271,16 @@ Tree SignalPromotion::transformation(Tree sig)
                 if (tx->nature() != ty->nature()) {
                     // we have to do a float promotion on x or y
                     Tree r = sigBinOp(i, smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y)));
-                    cerr << "kMul Promotion of " << ppsig(sig) << "\n"
-                         << "Result in " << ppsig(r) << endl;
+                    /*                     cerr << "kMul Promotion of " << ppsig(sig) << "\n"
+                                             << "Result in " << ppsig(r) << endl;
+                     */
                     return r;
                 } else {
                     // same types => no promotion needed
                     Tree r = sigBinOp(i, self(x), self(y));
-                    cerr << "kMul (no promotion) of " << ppsig(sig) << "\n"
-                         << "Result in " << ppsig(r) << endl;
+                    /*                     cerr << "kMul (no promotion) of " << ppsig(sig) << "\n"
+                                             << "Result in " << ppsig(r) << endl;
+                     */
                     return r;
                 }
 

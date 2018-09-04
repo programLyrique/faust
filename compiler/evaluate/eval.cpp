@@ -352,7 +352,7 @@ static Tree realeval(Tree exp, Tree visited, Tree localValEnv)
 
             Tree lres = boxPropagateSig(gGlobal->nil, a2, lsig);
             if (isList(lres) && isNil(tl(lres))) {
-                cerr << "simplify 355" << endl;
+                // cerr << "simplify 355" << endl;
                 Tree r = simplify(hd(lres));
                 if (isNum(r)) {
                     return r;
@@ -655,7 +655,7 @@ static bool isBoxNumeric(Tree in, Tree& out)
         if (getBoxType(v, &numInputs, &numOutputs) && (numInputs == 0) && (numOutputs == 1)) {
             // potential numerical expression
             Tree lsignals = boxPropagateSig(gGlobal->nil, v, makeSigInputList(numInputs));
-            cerr << "simplify 658" << endl;
+            // cerr << "simplify 658" << endl;
             Tree res = simplify(hd(lsignals));
             if (isSigReal(res, &x)) {
                 out = boxReal(x);
@@ -707,7 +707,7 @@ static double eval2double(Tree exp, Tree visited, Tree localValEnv)
         return 1;
     } else {
         Tree lsignals = boxPropagateSig(gGlobal->nil, diagram, makeSigInputList(numInputs));
-        cerr << "simplify 710" << endl;
+        // cerr << "simplify 710" << endl;
         Tree val = simplify(hd(lsignals));
         return tree2float(val);
     }
@@ -736,7 +736,7 @@ static int eval2int(Tree exp, Tree visited, Tree localValEnv)
         return 1;
     } else {
         Tree lsignals = boxPropagateSig(gGlobal->nil, diagram, makeSigInputList(numInputs));
-        cerr << "simplify 739" << endl;
+        // cerr << "simplify 739" << endl;
         Tree val = simplify(hd(lsignals));
         return tree2int(val);
     }
@@ -1386,7 +1386,7 @@ Tree numericBoxSimplification(Tree box)
             int    i;
             double x;
             Tree   lsignals = boxPropagateSig(gGlobal->nil, box, makeSigInputList(0));
-            cerr << "simplify 1389" << endl;
+            // cerr << "simplify 1389" << endl;
             Tree s = simplify(hd(lsignals));
 
             if (isSigReal(s, &x)) {

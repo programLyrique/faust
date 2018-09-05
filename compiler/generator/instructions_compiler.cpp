@@ -1788,6 +1788,7 @@ void InstructionsCompiler::generateUserInterfaceElements(Tree elements)
  * Generate buildUserInterface C++ lines of code corresponding
  * to user interface widget t
  */
+
 void InstructionsCompiler::generateWidgetCode(Tree fulllabel, Tree varname, Tree sig)
 {
     Tree                      path, c, x, y, z;
@@ -1803,7 +1804,7 @@ void InstructionsCompiler::generateWidgetCode(Tree fulllabel, Tree varname, Tree
             const set<string> values = i->second;
             for (set<string>::const_iterator j = values.begin(); j != values.end(); j++) {
                 if (key == "url") {
-                    url = rmWhiteSpaces(*j);
+                    url = prepareURL(*j);
                 }
             }
         }
@@ -1858,7 +1859,7 @@ void InstructionsCompiler::generateWidgetCode(Tree fulllabel, Tree varname, Tree
     } else if (isSigSoundfile(sig, path)) {
         fContainer->incUIActiveCount();
         pushUserInterfaceMethod(InstBuilder::genAddSoundfileInst(checkNullLabel(varname, label, true),
-                                                                 ((url == "") ? label : url), tree2str(varname)));
+                                                                 ((url == "") ? prepareURL(label) : url), tree2str(varname)));
 
     } else {
         throw faustexception("ERROR in generating widget code\n");

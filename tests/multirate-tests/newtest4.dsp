@@ -1,2 +1,2 @@
 // test compilation multirate
-process = up(2,_) : mem ;
+process = up(_,2) : mem ;

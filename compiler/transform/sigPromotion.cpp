@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <map>
-#include "global.hh"
 #include "ppsig.hh"
 #include "property.hh"
 #include "signals.hh"
@@ -77,7 +76,7 @@ Tree SignalPromotion::transformation(Tree sig)
                 } else {
                     // float promotion needed, rem (%) replaced by fmod
                     vector<Tree> lsig = {smartFloatCast(tx, self(x)), smartFloatCast(ty, self(y))};
-                    return gGlobal->gFmodPrim->computeSigOutput(lsig);
+                    return gFmodPrim->computeSigOutput(lsig);
                 }
 
             case kDiv:

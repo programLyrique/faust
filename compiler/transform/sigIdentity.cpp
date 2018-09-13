@@ -25,7 +25,6 @@
 #include <cstdlib>
 #include <map>
 #include "Text.hh"
-#include "global.hh"
 #include "ppsig.hh"
 #include "property.hh"
 #include "signals.hh"
@@ -33,6 +32,7 @@
 #include "tlib.hh"
 #include "tree.hh"
 #include "treeTransform.hh"
+#include "exception.hh"
 
 //-------------------------SignalIdentity-------------------------------
 // An identity transformation on signals. Can be used to test
@@ -137,7 +137,7 @@ Tree SignalIdentity::transformation(Tree sig)
             return sig;
         } else {
             // first visit
-            rec(var, gGlobal->nil);  // to avoid infinite recursions
+            rec(var, nil);  // to avoid infinite recursions
             return rec(var, mapself(le));
         }
     }
@@ -166,24 +166,9 @@ Tree SignalIdentity::transformation(Tree sig)
         return sigHBargraph(label, self(x), self(y), self(z));
     }
 
-    // Sounfile length, rate, channels, buffer
-    else if (isSigSoundfile(sig, label)) {
-        return sig;
-    } else if (isSigSoundfileLength(sig, sf, x)) {
-        return sigSoundfileLength(self(sf), self(x));
-    } else if (isSigSoundfileRate(sig, sf, x)) {
-        return sigSoundfileRate(self(sf), self(x));
-    } else if (isSigSoundfileBuffer(sig, sf, x, y, z)) {
-        return sigSoundfileBuffer(self(sf), self(x), self(y), self(z));
-    }
-
-    // Attach, Enable, Control
+    // Attach
     else if (isSigAttach(sig, x, y)) {
         return sigAttach(self(x), self(y));
-    } else if (isSigEnable(sig, x, y)) {
-        return sigEnable(self(x), self(y));
-    } else if (isSigControl(sig, x, y)) {
-        return sigControl(self(x), self(y));
     }
 
     else {

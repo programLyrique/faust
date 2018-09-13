@@ -10,9 +10,10 @@ system	?= $(shell uname -s)
 
 ## On darwin build both 32 and 64-bits intel versions
 ifeq ($(system), Darwin)
-ARCHFLAGS 	:=  -arch i386 -arch x86_64
-else 
-ARCHFLAGS 	:= 
+	ARCHFLAGS 	:=  -arch i386 -arch x86_64
+	CXXFLAGS +=  -stdlib=libc++
+else
+ARCHFLAGS 	:=
 endif
 
 ## On Windows (mingw32) we must link against the socket library.
@@ -22,6 +23,7 @@ EXE = .exe
 endif
 
 CXXFLAGS ?= -O3 -Wall -Wuninitialized $(ARCHFLAGS)
+CXXFLAGS += -std=c++11
 CXXFLAGS += -Wno-parentheses $(addprefix -I, $(subprojects)) -DINSTALL_PREFIX='"$(prefix)"'
 CXXFLAGS += -I../architecture
 CXXFLAGS += -fPIC

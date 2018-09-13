@@ -18,28 +18,49 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  ************************************************************************
  ************************************************************************/
- 
- 
- 
+
+
+
 #include "errormsg.hh"
 #include "boxes.hh"
+#include "exception.hh"
 #include "ppbox.hh"
 #include <iostream>
 using namespace std;
 
 const char* yyfilename = "????";
+
+void faustassertaux(bool cond, const string& file, int line)
+{
+    if (!cond) {
+        std::stringstream str;
+        str << "ASSERT : please report this message, the stack trace, and the failing DSP file to Faust developers (";
+        str << "file: " << file.substr(file.find_last_of('/') + 1) << ", line: " << line << ", ";
+        //str << "version: " << FAUSTVERSION;
+        // if (gGlobal) {
+        //     str << ", options: ";
+        //     gGlobal-printCompilationOptions(str);
+        // }
+        str << ")\n";
+#ifndef EMCC
+        stacktrace(str, 20);
+#endif
+        throw faustexception(str.str());
+    }
+}
+
 int 		gErrorCount = 0;
 Tree 		DEFLINEPROP = tree(symbol("DefLineProp"));
 
-void yyerror(const char* msg) 
-{ 
-	fprintf(stderr, "%s:%d:%s\n", yyfilename, yylineno, msg); 
+void yyerror(const char* msg)
+{
+	fprintf(stderr, "%s:%d:%s\n", yyfilename, yylineno, msg);
 	gErrorCount++;
 }
 
 void evalerror(const char* filename, int linenum, const char* msg, Tree exp)
 {
-    fprintf(stderr, "%s:%d: ERROR: %s ", filename, linenum, msg); 
+    fprintf(stderr, "%s:%d: ERROR: %s ", filename, linenum, msg);
     print(exp,stderr); fprintf(stderr, "\n");
     gErrorCount++;
 }
@@ -52,13 +73,13 @@ void evalerrorbox(const char* filename, int linenum, const char* msg, Tree exp)
 
 void evalwarning(const char* filename, int linenum, const char* msg, Tree exp)
 {
-	fprintf(stderr, "%s:%d: WARNING: %s ", filename, linenum, msg); 
+	fprintf(stderr, "%s:%d: WARNING: %s ", filename, linenum, msg);
 	print(exp,stderr); fprintf(stderr, "\n");
 }
 
 void evalremark(const char* filename, int linenum, const char* msg, Tree exp)
 {
-	fprintf(stderr, "%s:%d: REMARK: %s ", filename, linenum, msg); 
+	fprintf(stderr, "%s:%d: REMARK: %s ", filename, linenum, msg);
 	print(exp,stderr); fprintf(stderr, "\n");
 }
 

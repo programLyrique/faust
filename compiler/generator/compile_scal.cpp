@@ -46,6 +46,7 @@
 #include "privatise.hh"
 #include "prim2.hh"
 #include "xtended.hh"
+#include "sigResample.hh"
 
 #include "compatibility.hh"
 #include "ppsig.hh"
@@ -108,37 +109,44 @@ extern bool gDumpNorm;
 
 Tree ScalarCompiler::prepare(Tree LS)
 {
-startTiming("ScalarCompiler::prepare");
- startTiming("deBruijn2Sym");
-	Tree L1 = deBruijn2Sym(LS);   	// convert debruijn recursion into symbolic recursion
- endTiming("deBruijn2Sym");
-	Tree L2 = simplify(L1);			// simplify by executing every computable operation
-	Tree L3 = privatise(L2);		// Un-share tables with multiple writers
+	startTiming("ScalarCompiler::prepare");
+		startTiming("deBruijn2Sym");
+		Tree L1 = deBruijn2Sym(LS);   	// convert debruijn recursion into symbolic recursion
+		endTiming("deBruijn2Sym");
 
-	// dump normal form
-	if (gDumpNorm) {
-		cout << ppsig(L3) << endl;
-		exit(0);
+		startTiming("Resampling");
+		SignalResample sigResample(3);
+		//sigResample.trace(true);
+		Tree L1bis = sigResample.mapself(L1);
+		endTiming("Resampling");
+
+		Tree L2 = simplify(L1bis);			// simplify by executing every computable operation
+		Tree L3 = privatise(L2);		// Un-share tables with multiple writers
+
+		// dump normal form
+		if (gDumpNorm) {
+			cout << ppsig(L3) << endl;
+			exit(0);
+		}
+
+		recursivnessAnnotation(L3);         // Annotate L3 with recursivness information
+
+		startTiming("typeAnnotation");
+		typeAnnotation(L3);				// Annotate L3 with type information
+		endTiming("typeAnnotation");
+
+		sharingAnalysis(L3);                // annotate L3 with sharing count
+		fRates = new RateInferrer(L3);      // annotate L3 with rates
+		fOccMarkup.markOccurences(fRates, L3);		// annotate L3 with occurences analysis
+		//annotationStatistics();
+	endTiming("ScalarCompiler::prepare");
+
+	if (gDrawSignals) {
+		ofstream dotfile(subst("$0-sig.dot", makeDrawPath()).c_str());
+		sigToGraph(L3, dotfile, fRates);
 	}
 
-	recursivnessAnnotation(L3);         // Annotate L3 with recursivness information
-
-    startTiming("typeAnnotation");
-        typeAnnotation(L3);				// Annotate L3 with type information
-    endTiming("typeAnnotation");
-
-    sharingAnalysis(L3);                // annotate L3 with sharing count
-    fRates = new RateInferrer(L3);      // annotate L3 with rates
-  	fOccMarkup.markOccurences(fRates, L3);		// annotate L3 with occurences analysis
-    //annotationStatistics();
-endTiming("ScalarCompiler::prepare");
-
-    if (gDrawSignals) {
-        ofstream dotfile(subst("$0-sig.dot", makeDrawPath()).c_str());
-        sigToGraph(L3, dotfile, fRates);
-    }
-    
-  	return L3;
+	return L3;
 }
 
 Tree ScalarCompiler::prepare2(Tree L0)
@@ -162,9 +170,9 @@ void ScalarCompiler::compileMultiSignal (Tree L)
 {
 	//contextor recursivness(0);
 	L = prepare(L);		// optimize, share and annotate expression
-    
+
     //std::cerr << "least common multiple rate (multiple) = " << fRates->commonRate() << std::endl;
-    
+
     fClass->setCommonRate(fRates->commonRate());
 
     for (int i = 0; i < fClass->inputs(); i++) {
@@ -187,18 +195,18 @@ void ScalarCompiler::compileMultiSignal (Tree L)
             fClass->addExecCode(subst("if ((i%$3)==0) { output$0[i/$3] = $2$1; }", T(i), CS(sig), xcast(), T(p)));
         }
 	}
-    
+
     generateMetaData();
 	generateUserInterfaceTree(prepareUserInterfaceTree(fUIRoot));
 	generateMacroInterfaceTree("", prepareUserInterfaceTree(fUIRoot));
 	if (fDescription) {
 		fDescription->ui(prepareUserInterfaceTree(fUIRoot));
 	}
-    
+
     if (gPrintJSONSwitch) {
         ofstream xout(subst("$0.json", makeDrawPath()).c_str());
         xout << fJSON.JSON();
-    } 
+    }
 }
 
 
@@ -607,45 +615,45 @@ string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
 	string 		vname, ctype, code;
 	int 		sharing = getSharingCount(sig);
 	Occurences* o = fOccMarkup.retrieveOccurences(sig);
-    
+
 	// check reentrance
     if (getCompiledExpression(sig, code)) {
         return code;
     }
-    
+
     // check for expression occuring in a different rate expression, thus needing
     // to be compiled in a separate statement event if they are not shared
-    
+
     int rate = fRates->rate(sig);
     bool separate = (rate != o->getMinRate()) || (rate != o->getMaxRate());
-    
+
     //if (separate) {
     //std::cerr << ppsig(sig) << " has rate " << rate << " in context [" << o->getMinRate() << "," << o->getMaxRate() << "]" << std::endl;
     //}
-    
+
 	// check for expression occuring in delays
 	if (o->getMaxDelay()>0) {
-        
+
         getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
         if (sharing>1) {
             return generateDelayVec(sig, generateVariableStore(sig,exp), ctype, vname, o->getMaxDelay());
         } else {
 		    return generateDelayVec(sig, exp, ctype, vname, o->getMaxDelay());
         }
-        
+
 	} else if ((sharing > 1) || separate) {
-        
+
         return generateVariableStore(sig, exp);
-        
+
 	} else if (sharing == 1) {
-        
+
         return exp;
-        
+
 	} else {
         cerr << "Error in sharing count (" << sharing << ") for " << *sig << endl;
 		exit(1);
 	}
-    
+
 	return "Error in generateCacheCode";
 }
 
@@ -659,18 +667,18 @@ string ScalarCompiler::generateSeparateCode(Tree sig, const string& exp)
 
 	// check for expression occuring in delays
 	if (o->getMaxDelay()>0) {
-        
+
         getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
         if (sharing>1) {
             return generateDelayVec(sig, generateVariableStore(sig,exp), ctype, vname, o->getMaxDelay());
         } else {
 		    return generateDelayVec(sig, exp, ctype, vname, o->getMaxDelay());
         }
-        
+
 	} else  {
-        
+
         return generateVariableStore(sig, exp);
-        
+
 	}
 }
 
@@ -1406,7 +1414,7 @@ string ScalarCompiler::generateFixDelay (Tree sig, Tree exp, Tree delay)
     //cerr << "ScalarCompiler::generateFixDelay exp = " << *exp << endl;
     //cerr << "ScalarCompiler::generateFixDelay del = " << *delay << endl;
 
-    
+
     // ******** for debug purposes ********
     //std::cerr << ppsig(sig) << " has rate (in fix delay) " << rate << " in context [" << o->getMinRate() << "," << o->getMaxRate() << "]" << std::endl;
     string code = CS(exp); // ensure exp is compiled to have a vector name
@@ -1514,7 +1522,7 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
 void ScalarCompiler::generateDelayLine(Tree sig, const string& ctype, const string& vname, int mxd, const string& exp)
 {
     int p = fRates->periodicity(sig);
-    
+
     //assert(mxd > 0);
     if (mxd == 0) {
         // cerr << "MXD==0 :  " << vname << " := " << exp << endl;
@@ -1764,7 +1772,7 @@ void ScalarCompiler::declareWaveform(Tree sig, string& vname, int& size)
         sep = ',';
     }
     content << '}';
-  
+
     // Declares the Waveform
     fClass->addDeclCode(subst("static $0 \t$1[$2];", ctype, vname, T(size)));
     fClass->addDeclCode(subst("int \tidx$0;", vname));

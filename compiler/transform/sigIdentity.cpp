@@ -85,6 +85,21 @@ Tree SignalIdentity::transformation(Tree sig)
         return sigBinOp(i, self(x), self(y));
     }
 
+    // Multirate
+    else if (isSigVectorize(sig, x, y)) {
+      return sigVectorize(self(x), self(y));
+    } else if (isSigSerialize(sig, x)) {
+        return sigSerialize(self(x));
+    } else if (isSigConcat(sig, x, y)) {
+        return sigConcat(self(x), self(y));
+    } else if (isSigVectorAt(sig, x, y)) {
+        return sigVectorAt(self(x), self(y));
+    } else if (isSigUpSample(sig, x, y)) {
+        return sigUpSample(self(x), self(y));
+    } else if (isSigDownSample(sig, x, y)) {
+        return sigDownSample(self(x), self(y));
+    }
+
     // Foreign functions
     else if (isSigFFun(sig, ff, largs)) {
         return sigFFun(ff, mapself(largs));

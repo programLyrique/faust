@@ -1,4 +1,4 @@
-subprojects := boxes errors evaluate generator normalize parser propagate parallelize signals tlib draw draw/device draw/schema extended patternmatcher documentator utils
+subprojects := boxes errors evaluate generator normalize parser propagate parallelize signals tlib transform draw draw/device draw/schema extended patternmatcher documentator utils
 
 sources = $(wildcard *.cpp) $(wildcard */*.cpp) $(wildcard draw/*/*.cpp)
 
@@ -22,7 +22,7 @@ LIBS = -lwsock32
 EXE = .exe
 endif
 
-CXXFLAGS ?= -O3 -Wall -Wuninitialized $(ARCHFLAGS)
+CXXFLAGS ?= -O3 -Wall -Wuninitialized $(ARCHFLAGS) -g
 CXXFLAGS += -std=c++11
 CXXFLAGS += -Wno-parentheses $(addprefix -I, $(subprojects)) -DINSTALL_PREFIX='"$(prefix)"'
 CXXFLAGS += -I../architecture

@@ -293,6 +293,22 @@ ostream& ppsig::print(ostream& fout) const
         printfun(fout, "control", x, y);
     }
 
+    else if (isSigVectorize(sig, x, y)) {
+        printfun(fout, "vectorize", x, y);
+    } else if (isSigSerialize(sig, x)) {
+        printfun(fout, "serialize", x);
+    } else if (isSigVectorAt(sig, x, y)) {
+        printfun(fout, "vectorAt", x, y);
+    } else if (isSigConcat(sig, x, y)) {
+        printfun(fout, "concat", x, y);
+    }
+
+    else if (isSigUpSample(sig, x, y)) {
+        printfun(fout, "up", x, y);
+    } else if (isSigDownSample(sig, x, y)) {
+        printfun(fout, "down", x, y);
+    }
+
     else {
         cerr << "[[" << *sig << "]]";
     }

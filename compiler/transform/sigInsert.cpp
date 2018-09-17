@@ -31,6 +31,7 @@
 #include "tlib.hh"
 #include "tree.hh"
 #include "xtended.hh"
+#include "assert.h"
 
 //-------------------------SignalInsert-------------------------------
 // Adds explicite int or float cast when needed. This is needed prior

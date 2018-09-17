@@ -351,6 +351,12 @@ struct global {
     Sym SIGDOCACCESSTBL;
     Sym SIGSELECT2;
     Sym SIGSELECT3;
+    Sym SIGVECTORIZE;
+    Sym SIGSERIALIZE;
+    Sym SIGCONCAT;
+    Sym SIGVECTORAT;
+    Sym SIGUPSAMPLE;
+    Sym SIGDOWNSAMPLE;
     Sym SIGBINOP;
     Sym SIGFFUN;
     Sym SIGFCONST;

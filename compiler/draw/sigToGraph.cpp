@@ -243,7 +243,7 @@ static string sigLabel(Tree sig)
     else if ( isSigVSlider(sig, label,c,x,y,z) )	{ fout << "vslider \"" << *label << '"';  }
     else if ( isSigHSlider(sig, label,c,x,y,z) )	{ fout << "hslider \"" << *label << '"';  }
     else if ( isSigNumEntry(sig, label,c,x,y,z) )	{ fout << "nentry \"" << *label << '"';  }
-    
+
     else if ( isSigVBargraph(sig, label,x,y,z) )	{ fout << "vbargraph \"" << *label << '"'; 	}
     else if ( isSigHBargraph(sig, label,x,y,z) )	{ fout << "hbargraph \"" << *label << '"'; 	}
 #else
@@ -267,6 +267,22 @@ static string sigLabel(Tree sig)
 #endif
     else if (isSigAttach(sig, x, y)) {
         fout << "attach";
+    }
+
+    else if (isSigVectorize(sig, x, y)) {
+        fout << "vectorize";
+    } else if (isSigSerialize(sig, x)) {
+        fout << "serialize";
+    } else if (isSigConcat(sig, x, y)) {
+        fout << "#";
+    } else if (isSigVectorAt(sig, x, y)) {
+        fout << "[]";
+    }
+
+    else if (isSigUpSample(sig, x, y)) {
+        fout << "up";
+    } else if (isSigDownSample(sig, x, y)) {
+        fout << "down";
     }
 
     else {

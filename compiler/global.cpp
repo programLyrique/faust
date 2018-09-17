@@ -341,6 +341,13 @@ global::global() : TABBER(1), gLoopDetector(1024, 400), gNextFreeColor(1)
     SIGDOCACCESSTBL    = symbol("SigDocAccessTbl");
     SIGSELECT2         = symbol("SigSelect2");
     SIGSELECT3         = symbol("SigSelect3");
+    SIGVECTORIZE = symbol ("SigVectorize");
+    SIGSERIALIZE = symbol ("SigSerialize");
+    SIGCONCAT = symbol ("SigConcat");
+    SIGVECTORAT = symbol ("SigVectorAt");
+    SIGUPSAMPLE = symbol ("SigUpsample");
+    SIGDOWNSAMPLE = symbol ("SigDownsample");
+
     SIGBINOP           = symbol("SigBinOp");
     SIGFFUN            = symbol("SigFFun");
     SIGFCONST          = symbol("SigFConst");

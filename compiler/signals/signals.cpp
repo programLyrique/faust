@@ -222,6 +222,62 @@ bool isSigSelect3(Tree t, Tree& selector, Tree& s1, Tree& s2, Tree& s3)
     return isTree(t, gGlobal->SIGSELECT3, selector, s1, s2, s3);
 }
 
+// multirate
+
+Tree sigVectorize(Tree n, Tree s)
+{
+    return tree(gGlobal->SIGVECTORIZE, n, s);
+}
+bool isSigVectorize(Tree a, Tree& n, Tree& s)
+{
+    return isTree(a, gGlobal->SIGVECTORIZE, n, s);
+}
+
+Tree sigSerialize(Tree s1)
+{
+    return tree(gGlobal->SIGSERIALIZE, s1);
+}
+bool isSigSerialize(Tree a, Tree& s1)
+{
+    return isTree(a, gGlobal->SIGSERIALIZE, s1);
+}
+
+Tree sigConcat(Tree s1, Tree s2)
+{
+    return tree(gGlobal->SIGCONCAT, s1, s2);
+}
+bool isSigConcat(Tree a, Tree& s1, Tree& s2)
+{
+    return isTree(a, gGlobal->SIGCONCAT, s1, s2);
+}
+
+Tree sigVectorAt(Tree s1, Tree s2)
+{
+    return tree(gGlobal->SIGVECTORAT, s1, s2);
+}
+bool isSigVectorAt(Tree a, Tree& s1, Tree& s2)
+{
+    return isTree(a, gGlobal->SIGVECTORAT, s1, s2);
+}
+
+Tree sigUpSample(Tree s, Tree n)
+{
+    return tree(gGlobal->SIGUPSAMPLE, s, n);
+}
+bool isSigUpSample(Tree a, Tree& s, Tree& n)
+{
+    return isTree(a, gGlobal->SIGUPSAMPLE, s, n);
+}
+
+Tree sigDownSample(Tree s, Tree n)
+{
+    return tree(gGlobal->SIGDOWNSAMPLE, s, n);
+}
+bool isSigDownSample(Tree a, Tree& s, Tree& n)
+{
+    return isTree(a, gGlobal->SIGDOWNSAMPLE, s, n);
+}
+
 // Arithmetical operations
 
 Tree sigBinOp(int op, Tree x, Tree y)

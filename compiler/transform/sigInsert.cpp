@@ -19,32 +19,39 @@
  ************************************************************************
  ************************************************************************/
 
+#include "sigInsert.hh"
+#include <stdlib.h>
+#include <cstdlib>
+#include <map>
+//#include "global.hh"
+#include "ppsig.hh"
+#include "property.hh"
+#include "signals.hh"
+#include "sigtyperules.hh"
+#include "tlib.hh"
+#include "tree.hh"
+#include "xtended.hh"
+#include <assert.h>
 
+//-------------------------SignalInsert-------------------------------
+// Adds explicite int or float cast when needed. This is needed prior
+// to any optimisations to avoid to scramble int and float expressions
+//----------------------------------------------------------------------
 
- #ifndef _SIGRESAMPLE_
- #define _SIGRESAMPLE_
+Tree SignalInsert::transformation(Tree sig)
+{
+    int  i;
+    Tree sel, x, y, z;
 
+    Type ttt = getCertifiedSigType(sig);
+    assert(ttt);
 
- #include <stdlib.h>
- #include <cstdlib>
- #include "property.hh"
- #include "sigtyperules.hh"
- #include "tree.hh"
- #include "treeTransform.hh"
- #include "sigIdentity.hh"
+    Tree r   = SignalIdentity::transformation(sig);
+    cerr << "indent " << fIndent  << " type: " << ttt << endl;
+    switch (fIndent) {
+        case 1 : return sigIntCast(r);
+        case 2 : return sigFloatCast(r);
+    }
 
- class SignalResample : public SignalIdentity {
-     int fDepth;
-     bool fUI;
-
-    public:
-     SignalResample(int depth) : fDepth(depth), fUI(false) {}
-
-    protected:
-     virtual Tree transformation(Tree t);
-     virtual void traceEnter(Tree t);
-     virtual void traceExit(Tree t, Tree r);
- };
-
-
- #endif
+    return r;
+}

@@ -18,9 +18,9 @@
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  ************************************************************************
  ************************************************************************/
- 
- 
- 
+
+
+
 #include "tree.hh"
 #include "sigtype.hh"
 #include "property.hh"
@@ -41,14 +41,14 @@ bool    SimpleType::isMaximal() const                             ///< true when
 //		Surcharges de l'operateur d'impression <<
 //
 //------------------------------------------------------------------------------------
- 
-		
+
+
 ostream& operator<<(ostream& dst, const Type& t) 	{ return  t->print(dst);}
 
 ostream& operator<<(ostream& dst, const SimpleType& t) 	{ return  t.print(dst); }
-		
+
 ostream& operator<<(ostream& dst, const TableType& t) 	{ return  t.print(dst); }
-		
+
 ostream& operator<<(ostream& dst, const TupletType& t) 	{ return  t.print(dst); }
 
 ostream& operator<<(ostream& dst, const VectorType& t) 	{ return  t.print(dst); }
@@ -66,12 +66,12 @@ ostream& operator<<(ostream& dst, const VectorType& t) 	{ return  t.print(dst); 
  */
 ostream& SimpleType::print(ostream& dst) const
 {
-	return  dst << "NR"[nature()] 
+	return  dst << "NR"[nature()]
 		    << "KB?S"[variability()]
 		    << "CI?E"[computability()]
 		    << "VS?TS"[vectorability()]
-		    << "N?B"[boolean()] 
-			<< " " << fInterval; 
+		    << "N?B"[boolean()]
+			<< " " << fInterval;
 }
 
 
@@ -82,10 +82,10 @@ ostream& TableType::print(ostream& dst) const
 {
 	dst << "KB?S"[variability()]
 		<< "CI?E"[computability()]
-		<< " " << fInterval 
+		<< " " << fInterval
 		<< ":Table(";
 	fContent->print(dst);
-	return dst << ')'; 
+	return dst << ')';
 }
 
 
@@ -181,9 +181,9 @@ Type operator| ( const Type& t1, const Type& t2)
 	SimpleType 	*st1, *st2;
 	TableType	*tt1, *tt2;
 	TupletType	*nt1, *nt2;
-	
+
 	if ( (st1 = isSimpleType(t1)) && (st2 = isSimpleType(t2)) ) {
-		
+
         return makeSimpleType(	st1->nature()|st2->nature(),
 					st1->variability()|st2->variability(),
 					st1->computability()|st2->computability(),
@@ -191,18 +191,18 @@ Type operator| ( const Type& t1, const Type& t2)
 					st1->boolean()|st2->boolean(),
                     reunion(st1->getInterval(), st2->getInterval())
 					);
-		
+
 	} else if ( (tt1 = isTableType(t1)) && (tt2 = isTableType(t2)) ) {
-		
+
         return makeTableType( tt1->content() | tt2->content() );
-		
+
 	} else if ( (nt1 = isTupletType(t1)) && (nt2 = isTupletType(t2)) ) {
-		
+
 		vector<Type> v;
 		int n = min(nt1->arity(), nt2->arity());
 		for (int i=0; i<n; i++) { v.push_back( (*nt1)[i] | (*nt2)[i]); }
 		return new TupletType( v );
-		
+
 	} else {
 
         vector<int> D1, D2, D3;
@@ -228,7 +228,7 @@ bool operator== ( const Type& t1, const Type& t2)
 
 	if (t1->variability() != t2->variability()) 	return false;
 	if (t1->computability() != t2->computability()) return false;
-	
+
     if ( (st1 = isSimpleType(t1)) && (st2 = isSimpleType(t2)) )
         return     (st1->nature() == st2->nature())
                 && (st1->variability() == st2->variability())
@@ -263,21 +263,21 @@ bool operator== ( const Type& t1, const Type& t2)
     // types are different
 	return false;
 }
-		
+
 bool operator<= ( const Type& t1, const Type& t2)
 {
 	return (t1|t2) == t2;
 }
 
-		
+
 
 Type operator* 	(const Type& t1, const Type& t2)
 {
 	vector<Type>	v;
-	
+
 	TupletType* nt1 = dynamic_cast<TupletType*>((AudioType*)t1);
 	TupletType* nt2 = dynamic_cast<TupletType*>((AudioType*)t2);
-	
+
 	if (nt1) {
 		for (int i=0; i<nt1->arity(); i++) {
 			v.push_back((*nt1)[i]);
@@ -285,7 +285,7 @@ Type operator* 	(const Type& t1, const Type& t2)
 	} else {
 		v.push_back(t1);
 	}
-	
+
 	if (nt2) {
 		for (int i=0; i<nt2->arity(); i++) {
 			v.push_back((*nt2)[i]);
@@ -293,9 +293,9 @@ Type operator* 	(const Type& t1, const Type& t2)
 	} else {
 		v.push_back(t2);
 	}
-	return new TupletType(v);	
+	return new TupletType(v);
 }
-	
+
 
 SimpleType*	isSimpleType(AudioType* t)	{ return dynamic_cast<SimpleType*>(t); }
 TableType* 	isTableType(AudioType* t)	{ return dynamic_cast<TableType*>(t);  }
@@ -326,7 +326,7 @@ Type checkKonst(Type t)
 		exit(1);
 	}
 	return t;
-}	
+}
 
 Type checkInit(Type t)
 {
@@ -336,7 +336,7 @@ Type checkInit(Type t)
 		exit(1);
 	}
 	return t;
-}	
+}
 
 Type checkIntParam(Type t)
 {
@@ -351,12 +351,12 @@ Type checkWRTbl(Type tbl, Type wr)
 		exit(1);
 	}
 	return tbl;
-}		
+}
 
 /**
 	\brief Check is a type is appropriate for a delay.
 	@return -1 if not appropriate, mxd (max delay) if appropriate
-	
+
  */
 int checkDelayInterval(Type t)
 {
@@ -367,8 +367,8 @@ int checkDelayInterval(Type t)
 		//cerr << "checkDelayInterval failed for : " << i << endl;
 		return -1;
 	}
-}		
-	
+}
+
 
 // Donne le nom du type C correspondant �la nature d'un signal
 string cType (Type t)
@@ -403,7 +403,7 @@ static Tree  codeVectorType(VectorType* st);
 
 /**
  * codeAudioType(Type) -> Tree
- * Code an audio type as a tree in order to benefit of memoization
+ * Code an audio type as a tree in order to benefit of memoization`
  * The type field (of the coded type) is used to store the audio
  * type
  */

@@ -147,7 +147,7 @@ Tree sigDownSample (Tree s, Tree n);
 bool isSigDownSample (Tree a, Tree& s, Tree& n);
 
 
-// arithmetical operations 
+// arithmetical operations
 
 Tree sigBinOp	(int op, Tree x, Tree y);
 bool isSigBinOp	(Tree s, int* op, Tree& x, Tree& y);
@@ -263,6 +263,8 @@ bool isSigHBargraph (Tree s, Tree& label, Tree& min, Tree& max, Tree& t0);
 Tree sigAttach   (Tree x, Tree y);
 bool isSigAttach (Tree s);
 bool isSigAttach (Tree s, Tree& x, Tree& y);
+
+bool isSigInputUI(Tree t);
 
 
 /*****************************************************************************

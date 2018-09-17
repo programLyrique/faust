@@ -19,32 +19,24 @@
  ************************************************************************
  ************************************************************************/
 
+#ifndef __SIGINSERT__
+#define __SIGINSERT__
 
+#include "sigIdentity.hh"
 
- #ifndef _SIGRESAMPLE_
- #define _SIGRESAMPLE_
+//-------------------------SignalInsert-------------------------------
+// Adds explicite int or float cast when needed. This is needed prior
+// to any optimisations to avoid to scramble int and float expressions
+//----------------------------------------------------------------------
 
+class SignalInsert : public SignalIdentity {
+    bool fVisitGen;
 
- #include <stdlib.h>
- #include <cstdlib>
- #include "property.hh"
- #include "sigtyperules.hh"
- #include "tree.hh"
- #include "treeTransform.hh"
- #include "sigIdentity.hh"
+   public:
+    SignalInsert() : fVisitGen(true) {}
 
- class SignalResample : public SignalIdentity {
-     int fDepth;
-     bool fUI;
+   protected:
+    virtual Tree transformation(Tree sig);
+};
 
-    public:
-     SignalResample(int depth) : fDepth(depth), fUI(false) {}
-
-    protected:
-     virtual Tree transformation(Tree t);
-     virtual void traceEnter(Tree t);
-     virtual void traceExit(Tree t, Tree r);
- };
-
-
- #endif
+#endif

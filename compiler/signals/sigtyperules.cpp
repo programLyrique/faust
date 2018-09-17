@@ -43,8 +43,8 @@
 //--------------------------------------------------------------------------
 // Uncomment to activate type inference tracing
 
-//#define TRACE(x) x
-#define TRACE(x) 0;
+#define TRACE(x) x
+//#define TRACE(x) 0;
 
 
 
@@ -295,7 +295,7 @@ static Type infereSigType(Tree sig, Tree env)
 		return castInterval(sampCast(t1|t2), reunion(t1->getInterval(), t2->getInterval()));
 	}
 
-	else if (isSigFixDelay(sig, s1, s2)) 		{ 
+	else if (isSigFixDelay(sig, s1, s2)) 		{
         Type vt1 = T(s1,env);
         vector<int> dim;
         Type t1 = vt1->dimensions(dim);
@@ -316,7 +316,7 @@ static Type infereSigType(Tree sig, Tree env)
 			cerr << "        " << i << endl;
 			exit(1);
 		}
-			
+
         Type nt1 = castInterval(sampCast(t1), reunion(t1->getInterval(), interval(0,0)));
         return makeVectorType(nt1,dim);
 	}
@@ -360,18 +360,41 @@ static Type infereSigType(Tree sig, Tree env)
 
     else if (isSigCheckbox(sig))				{ /*sig->setType(TGUI01);*/ return TGUI01; }
 
-	else if (isSigVSlider(sig,label,cur,min,max,step))
-												return castInterval(TGUI,interval(tree2float(min),tree2float(max)));
+    else if (isSigVSlider(sig, label, cur, min, max, step)) {
+       Type t1 = T(cur, env);
+       Type t2 = T(min, env);
+       Type t3 = T(max, env);
+       Type t4 = T(step, env);
+       return castInterval(TGUI, interval(tree2float(min), tree2float(max)));
+   }
 
-	else if (isSigHSlider(sig,label,cur,min,max,step))
-												return castInterval(TGUI,interval(tree2float(min),tree2float(max)));
+   else if (isSigHSlider(sig, label, cur, min, max, step)) {
+       Type t1 = T(cur, env);
+       Type t2 = T(min, env);
+       Type t3 = T(max, env);
+       Type t4 = T(step, env);
+       return castInterval(TGUI, interval(tree2float(min), tree2float(max)));
+   }
 
-	else if (isSigNumEntry(sig,label,cur,min,max,step))
-												return castInterval(TGUI,interval(tree2float(min),tree2float(max)));
+   else if (isSigNumEntry(sig, label, cur, min, max, step)) {
+       Type t1 = T(cur, env);
+       Type t2 = T(min, env);
+       Type t3 = T(max, env);
+       Type t4 = T(step, env);
+       return castInterval(TGUI, interval(tree2float(min), tree2float(max)));
+   }
 
-    else if (isSigHBargraph(sig, l, x, y, s1))  return T(s1,env);
+   else if (isSigHBargraph(sig, l, x, y, s1)) {
+       Type t1 = T(x, env);
+       Type t2 = T(y, env);
+       return T(s1, env)->promoteVariability(kBlock);
+   }
 
-    else if (isSigVBargraph(sig, l, x, y, s1))  return T(s1,env);
+   else if (isSigVBargraph(sig, l, x, y, s1)) {
+       Type t1 = T(x, env);
+       Type t2 = T(y, env);
+       return T(s1, env)->promoteVariability(kBlock);
+   }
 
     else if (isSigAttach(sig, s1, s2))          { T(s2,env); return T(s1,env); }
 

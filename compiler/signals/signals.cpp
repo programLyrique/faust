@@ -183,27 +183,27 @@ bool isProj (Tree t, int* i, Tree& rgroup)		{ Tree x; return isTree(t, SIGPROJ, 
 Sym SIGINTCAST = symbol ("sigIntCast");
 Sym SIGFLOATCAST = symbol ("sigFloatCast");
 
-Tree  sigIntCast(Tree t)						
-{ 
+Tree  sigIntCast(Tree t)
+{
 	Node n = t->node();
-	
-	int i; 		if (isInt(n, &i)) 			return t; 
+
+	int i; 		if (isInt(n, &i)) 			return t;
 	double x;	if (isDouble(n, &x)) 		return tree(int(x));
 				if (isSigIntCast(t))		return t;
-	 
-	return tree(SIGINTCAST, t);   
+
+	return tree(SIGINTCAST, t);
 }
 
-Tree  sigFloatCast(Tree t)						
-{ 
+Tree  sigFloatCast(Tree t)
+{
 	Node n = t->node();
-	
-	int i; 		if (isInt(n, &i)) 			return tree(double(i)); 
+
+	int i; 		if (isInt(n, &i)) 			return tree(double(i));
 	double x;	if (isDouble(n, &x)) 		return t;
 				if (isSigFloatCast(t))		return t;
                 if (isSigInput(t, &i))      return t;
-	 
-	return tree(SIGFLOATCAST, t);   
+
+	return tree(SIGFLOATCAST, t);
 }
 
 //Tree  sigFloatCast(Tree t)						{ return isSigFloatCast(t)? t : tree(SIGFLOATCAST, t); }
@@ -317,6 +317,16 @@ Sym SIGATTACH = symbol ("sigAttach");
 Tree  sigAttach(Tree t0, Tree t1)					{ return tree(SIGATTACH, t0, t1); 		}
 bool  isSigAttach(Tree t, Tree& t0, Tree& t1)		{ return isTree(t, SIGATTACH, t0, t1); 	}
 
+bool isSigInputUI(Tree t)
+{
+	Sym sym = t->node().getSym();
+	if(sym != nullptr)
+	{
+		return sym == SIGBUTTON || sym == SIGCHECKBOX || sym == SIGWAVEFORM ||
+					 sym == SIGHSLIDER || sym == SIGVSLIDER || sym == SIGNUMENTRY;
+	}
+	return false;
+}
 
 
 Tree addNums(Tree a, Tree b)
@@ -446,8 +456,8 @@ bool verySimple(Tree exp)
 	int		i;
 	double	r;
 	Tree 	type, name, file;
-	
-	return 	isSigInt(exp, &i) 
+
+	return 	isSigInt(exp, &i)
 			|| 	isSigReal(exp, &r)
 			||	isSigInput(exp, &i)
 			||	isSigFConst(exp, type, name, file);

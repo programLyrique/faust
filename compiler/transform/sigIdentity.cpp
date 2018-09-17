@@ -56,6 +56,13 @@ Tree SignalIdentity::transformation(Tree sig)
     int    i;
     double r;
     Tree   c, sel, x, y, z, u, v, var, le, label, id, ff, largs, type, name, file, sf;
+    // if (isSigInputUI(sig))
+    // {
+    //   return sig;
+    // }
+    //
+    // Type t = getCertifiedSigType(sig);
+    // cerr << *t << endl;
 
     if (getUserData(sig)) {
         vector<Tree> newBranches;

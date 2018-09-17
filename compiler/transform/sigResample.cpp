@@ -43,7 +43,7 @@
  void SignalResample::traceEnter(Tree t)
  {
      tab(fIndent, cerr);
-     cerr << "Enter. Depth= " << fDepth << " " << fMessage << ": " << ppsig(t) << endl;
+     cerr << "Enter. Depth= " << fDepth << " " << fMessage << ": " << ppsig(t) << " Type: " << getCertifiedSigType(t) << endl;
  }
 
  void SignalResample::traceExit(Tree t, Tree r)
@@ -54,16 +54,44 @@
 
  Tree SignalResample::transformation(Tree sig)
  {
+  //  int i;
+  //  Tree x;
 
-   if(fDepth == fIndent )
+
+   cerr << "\nSig: " << ppsig(sig) << endl;
+   Type t = getCertifiedSigType(sig);
+   cerr << "Type: " << *t  << endl;
+
+   Tree r = SignalIdentity::transformation(sig);
+
+   //cerr << "fIndent= " << fIndent << endl;
+   switch (fIndent) {
+     case 1:
+      //return sigUpSample(r, sigInt(2));
+      return sigIntCast(r);
+
+    case 2:
+      //return sigDownSample(r, sigInt(2));
+      return sigFloatCast(r);
+   }
+
+   return r;
+
+  /* if (isSigInputUI(sig))
    {
-     //tab(fIndent, cerr);
-     //cerr << fMessage << ": depth=" << fDepth << endl;
-
-     return sigUpSample(self(sig), sigInt(2));
+     return sig;
+   }
+   else if(fDepth == fIndent && getCertifiedSigType(sig)->variability() == kSamp)
+   {
+      //cerr << getCertifiedSigType(sig) << endl;
+      return sigDownSample(SignalIdentity::transformation(sig), sigInt(2));
+   }
+   else if (isSigOutput(sig, &i, x))
+   {
+      return sigOutput(i, sigUpSample(self(x), sigInt(2)));
    }
    else
    {
       return SignalIdentity::transformation(sig);
-   }
+   }*/
  }

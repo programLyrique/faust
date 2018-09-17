@@ -47,6 +47,7 @@
 #include "prim2.hh"
 #include "xtended.hh"
 #include "sigResample.hh"
+#include "sigInsert.hh"
 
 #include "compatibility.hh"
 #include "ppsig.hh"
@@ -114,13 +115,8 @@ Tree ScalarCompiler::prepare(Tree LS)
 		Tree L1 = deBruijn2Sym(LS);   	// convert debruijn recursion into symbolic recursion
 		endTiming("deBruijn2Sym");
 
-		startTiming("Resampling");
-		SignalResample sigResample(3);
-		//sigResample.trace(true);
-		Tree L1bis = sigResample.mapself(L1);
-		endTiming("Resampling");
 
-		Tree L2 = simplify(L1bis);			// simplify by executing every computable operation
+		Tree L2 = simplify(L1);			// simplify by executing every computable operation
 		Tree L3 = privatise(L2);		// Un-share tables with multiple writers
 
 		// dump normal form
@@ -135,9 +131,26 @@ Tree ScalarCompiler::prepare(Tree LS)
 		typeAnnotation(L3);				// Annotate L3 with type information
 		endTiming("typeAnnotation");
 
-		sharingAnalysis(L3);                // annotate L3 with sharing count
-		fRates = new RateInferrer(L3);      // annotate L3 with rates
-		fOccMarkup.markOccurences(fRates, L3);		// annotate L3 with occurences analysis
+
+		// SignalIdentity identity;
+		// identity.trace(false);
+		// Tree L4 = identity.mapself(L3);
+		// assert(L3 == L4);
+
+		startTiming("Resampling");
+		SignalInsert sigInsert;
+		Tree L3b = sigInsert.mapself(L3);
+		endTiming("Resampling");
+
+		startTiming("typeAnnotation");
+		typeAnnotation(L3b);				// Annotate L3 with type information
+		endTiming("typeAnnotation");
+
+		sharingAnalysis(L3b);                // annotate L3 with sharing count
+
+
+		fRates = new RateInferrer(L3b);      // annotate L3 with rates
+		fOccMarkup.markOccurences(fRates, L3b);		// annotate L3 with occurences analysis
 		//annotationStatistics();
 	endTiming("ScalarCompiler::prepare");
 
@@ -146,7 +159,7 @@ Tree ScalarCompiler::prepare(Tree LS)
 		sigToGraph(L3, dotfile, fRates);
 	}
 
-	return L3;
+	return L3b;
 }
 
 Tree ScalarCompiler::prepare2(Tree L0)

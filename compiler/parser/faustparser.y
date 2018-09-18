@@ -22,7 +22,7 @@
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 #define YYMAXDEPTH	100000
-	
+
 using namespace std;
 
 extern char* 		yytext;
@@ -33,8 +33,8 @@ extern int 			yyerr;
 int yylex();
 
 //----------------------------------------------------------
-// unquote() : remove enclosing quotes and carriage return 
-// characters from string. Returns a Tree 
+// unquote() : remove enclosing quotes and carriage return
+// characters from string. Returns a Tree
 //----------------------------------------------------------
 inline char replaceCR(char c)
 {
@@ -207,6 +207,14 @@ Tree unquote(char* str)
 %token CASE
 %token ARROW
 
+/* multi rate extension */
+%token VECTORIZE
+%token SERIALIZE
+%token HASH
+%token RATE
+%token UPSAMPLE
+%token DOWNSAMPLE
+
 
  /* Begin and End tags for documentations, equations and diagrams */
 %token BDOC
@@ -331,7 +339,7 @@ reclist         : /*empty*/                             { $$ = gGlobal->nil; }
 // vallist      : argument                              { $$ = cons($1,nil); }
 // 				| argument PAR vallist                  { $$ = cons ($1,$3); }
 // 				;
-// 
+//
 vallist         : number                              { gGlobal->gWaveForm.push_back($1); }
                 | vallist PAR number                  { gGlobal->gWaveForm.push_back($3); }
                 ;
@@ -341,10 +349,10 @@ number			: INT   						{ $$ = boxInt(atoi(yytext)); }
 				| ADD INT   					{ $$ = boxInt (atoi(yytext)); }
 				| ADD FLOAT 					{ $$ = boxReal(atof(yytext)); }
 				| SUB INT   					{ $$ = boxInt ( -atoi(yytext) ); }
-				| SUB FLOAT 					{ $$ = boxReal( -atof(yytext) ); }				
+				| SUB FLOAT 					{ $$ = boxReal( -atof(yytext) ); }
 				;
-				
-				
+
+
 statement       : IMPORT LPAR uqstring RPAR ENDDEF	   	{ $$ = importFile($3); }
 				| DECLARE name string  ENDDEF		   	{ declareMetadata($2,$3); $$ = gGlobal->nil; }
 				| DECLARE name name string  ENDDEF		{ declareDefinitionMetadata($2,$3,$4); $$ = gGlobal->nil; }
@@ -451,7 +459,7 @@ infixexp		: infixexp ADD infixexp 	{ $$ = boxSeq(boxPar($1,$3),boxPrim2(sigAdd))
 
 				| infixexp LPAR arglist RPAR 	%prec APPL	{ $$ = buildBoxAppl($1,$3); }
 				| infixexp LCROC deflist RCROC	%prec APPL	{ $$ = boxModifLocalDef($1,formatDefinitions($3)); }
-				
+
 				| primitive						{ $$ = $1; }
 				;
 
@@ -532,6 +540,16 @@ primitive		: INT   						{ $$ = boxInt(atoi(yytext)); }
 				| SELECT2 						{ $$ = boxPrim3(sigSelect2); }
 				| SELECT3						{ $$ = boxPrim4(sigSelect3); }
 
+				| VECTORIZE                     { $$ = boxPrim2(sigVectorize); }
+				| SERIALIZE                     { $$ = boxPrim1(sigSerialize); }
+				| HASH                          { $$ = boxPrim2(sigConcat); }
+
+				| UPSAMPLE                      { $$ = boxPrim2(sigUpSample); }
+				| DOWNSAMPLE                    { $$ = boxPrim2(sigDownSample); }
+
+				| LCROC RCROC                   { $$ = boxPrim2(sigVectorAt); }
+				| LCROC infixexp RCROC          { $$ = boxSeq(boxPar(boxWire(),$2),boxPrim2(sigVectorAt)); }
+
 				| ident 						{ $$ = $1;  setUseProp($1, yyfilename, yylineno);}
                 | SUB ident                     { $$ = boxSeq(boxPar(boxInt(0),$2),boxPrim2(sigSub)); }
 
@@ -540,7 +558,7 @@ primitive		: INT   						{ $$ = boxInt(atoi(yytext)); }
 												{ $$ = buildBoxAbstr($3,$7); }
 
 				| CASE LBRAQ rulelist RBRAQ		{ $$ = boxCase(checkRulelist($3)); }
-				
+
 				| ffunction						{ $$ = boxFFun($1); }
                 | fconst                        { $$ = $1; }
                 | fvariable                     { $$ = $1; }
@@ -564,10 +582,10 @@ primitive		: INT   						{ $$ = boxInt(atoi(yytext)); }
 				| fseq							{ $$ = $1; }
 				| fsum							{ $$ = $1; }
 				| fprod							{ $$ = $1; }
-				
+
 				| finputs						{ $$ = $1; }
 				| foutputs						{ $$ = $1; }
-				
+
 				;
 
 
@@ -625,7 +643,7 @@ finputs			: INPUTS LPAR expression RPAR { $$ = boxInputs($3); }
 foutputs		: OUTPUTS LPAR expression RPAR { $$ = boxOutputs($3); }
 				;
 
-				
+
 
 /* description of foreign functions */
 
@@ -708,4 +726,3 @@ type			: INTCAST                       { $$ = tree(0); }
 				;
 
 %%
-

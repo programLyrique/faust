@@ -212,6 +212,14 @@ TMACRO   \\{ID}(\[(\ *({ID}|{NUMBER}),?\ *)\])?(\{(\ *({ID}|{NUMBER}),?\ *)*\})*
 
 "declare"	return DECLARE;
 
+"serialize" return SERIALIZE;
+"vectorize" return VECTORIZE;
+"#"         return HASH;
+"rate"      return RATE;
+
+"up"      	return UPSAMPLE;
+"down"      return DOWNSAMPLE;
+
 "case"		return CASE;
 "=>"		return ARROW;
 

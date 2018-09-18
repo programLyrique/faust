@@ -244,6 +244,7 @@ static Type infereSigType(Tree sig, Tree env)
     double r;
     Tree   sel, s1, s2, s3, ff, id, ls, l, x, y, z, part, u, var, body, type, name, file, sf;
     Tree   label, cur, min, max, step;
+    Tree   n, s;
 
     gGlobal->gCountInferences++;
 
@@ -482,6 +483,27 @@ static Type infereSigType(Tree sig, Tree env)
 
     else if (isList(sig)) {
         return T(hd(sig), env) * T(tl(sig), env);
+    }
+
+    else if (isSigVectorize(sig, n, s)) {
+        Type t1 = T(n, env);
+        return T(s, env);
+    } else if (isSigSerialize(sig, x)) {
+        return T(x, env);
+    } else if (isSigConcat(sig, x, y)) {
+        Type t1 = T(x, env);
+        return T(y, env);
+    } else if (isSigVectorAt(sig, s, n)) {
+        Type t1 = T(n, env);
+        return T(s, env);
+    }
+
+    else if (isSigUpSample(sig, x, y)) {
+        T(y, env);
+        return T(x, env);
+    } else if (isSigDownSample(sig, x, y)) {
+        T(y, env);
+        return T(x, env);
     }
 
     // unrecognized signal here

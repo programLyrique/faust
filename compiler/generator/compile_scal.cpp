@@ -497,6 +497,20 @@ string ScalarCompiler::generateCode(Tree sig)
     } else if (isSigEnable(sig, x, y)) {
         return generateEnable(sig, x, y);
     }
+
+    else if (isSigUpSample(sig, x, y)) {
+        return subst("upsample($0,$1)", CS(x), CS(y)); ;
+    } else if (isSigDownSample(sig, x, y)) {
+        return subst("downsample($0,$1)", CS(x), CS(y)); ;
+    } else if (isSigVectorize(sig, x, y)) {
+        return subst("vectorize($0,$1)", CS(x), CS(y)); ;
+    } else if (isSigSerialize(sig, x)) {
+        return subst("serialize($0)", CS(x)); ;
+    } else if (isSigConcat(sig, x, y)) {
+        return subst("concat($0,$1)", CS(x), CS(y)); ;
+    } else if (isSigVectorAt(sig, x, y)) {
+        return subst("vectorAt($0,$1)", CS(x), CS(y)); ;
+    }
     /* we should not have any control at this stage*/
     else {
         stringstream error;

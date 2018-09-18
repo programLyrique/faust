@@ -528,24 +528,38 @@ ValueInst* InstructionsCompiler::generateCode(Tree sig)
     else if (isSigAttach(sig, x, y)) {
         CS(y);
         return generateCacheCode(sig, CS(x));
+<<<<<<< HEAD
     /*
     HACK : 09/12/11
+=======
+    }
+
+>>>>>>> Parse multirate instr and no-op compile them.
     else if (isSigVectorize(sig, x, y)) {
-    printf("vectorize not implemented\n");
-    exit(0);
+        CS(x);
+        CS(y);
+        return InstBuilder::genNullInst();
+    } else if (isSigSerialize(sig, x)) {
+        CS(x);
+        return InstBuilder::genNullInst();
+    } else if (isSigConcat(sig, x, y)) {
+        CS(x);
+        CS(y);
+        return InstBuilder::genNullInst();
+    } else if (isSigVectorAt(sig, x, y)) {
+        CS(x);
+        CS(y);
+        return InstBuilder::genNullInst();
+    } else if (isSigDownSample(sig, x, y)) {
+        CS(x);
+        CS(y);
+        return InstBuilder::genNullInst();
+    } else if (isSigUpSample(sig, x, y)) {
+        CS(x);
+        CS(y);
+        return InstBuilder::genNullInst();
     }
-    else if (isSigSerialize(sig, x)) {
-    printf("serialize not implemented\n");
-    exit(0);
-    }
-    else if (isSigConcat(sig, x, y)) {
-    printf("concatenation not implemented\n");
-    exit(0);
-    }
-    else if (isSigVectorAt(sig, x, y)) {
-    printf("vector at not implemented\n");
-    exit(0);
-    }
+<<<<<<< HEAD
     */
     } else if (isSigEnable(sig, x, y)) {
         stringstream error;
@@ -553,6 +567,10 @@ ValueInst* InstructionsCompiler::generateCode(Tree sig)
         error << " (enable/control can currently only be used with -lang ocpp backend in scalar mode)\n";
         throw faustexception(error.str());
     } else {
+=======
+
+    else {
+>>>>>>> Parse multirate instr and no-op compile them.
         stringstream error;
         error << "ERROR when compiling, unrecognized signal : " << ppsig(sig) << endl;
         throw faustexception(error.str());

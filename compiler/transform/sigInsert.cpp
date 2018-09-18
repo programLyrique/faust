@@ -49,8 +49,8 @@ Tree SignalInsert::transformation(Tree sig)
     Tree r   = SignalIdentity::transformation(sig);
     cerr << "indent " << fIndent  << " type: " << ttt << endl;
     switch (fIndent) {
-        case 1 : return sigIntCast(r);
-        case 2 : return sigFloatCast(r);
+        case 1 : return sigDownSample(r, sigInt(2));
+        case 2 : return sigUpSample(r, sigInt(2));
     }
 
     return r;

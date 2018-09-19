@@ -34,23 +34,19 @@
 #include "assert.h"
 
 //-------------------------SignalInsert-------------------------------
-// Adds explicite int or float cast when needed. This is needed prior
-// to any optimisations to avoid to scramble int and float expressions
+// Inserts a signal at a chosen depth
 //----------------------------------------------------------------------
 
 Tree SignalInsert::transformation(Tree sig)
 {
-    int  i;
-    Tree sel, x, y, z;
 
     Type ttt = getCertifiedSigType(sig);
     assert(ttt);
 
     Tree r   = SignalIdentity::transformation(sig);
-    cerr << "indent " << fIndent  << " type: " << ttt << endl;
-    switch (fIndent) {
-        case 1 : return sigDownSample(r, sigInt(2));
-        case 2 : return sigUpSample(r, sigInt(2));
+    //cerr << "indent " << fIndent  << " type: " << ttt << endl;
+    if(fIndent == fDepth) {
+        return sigDownSample(r, sigInt(2));
     }
 
     return r;

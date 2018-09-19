@@ -19,8 +19,8 @@
  ************************************************************************
  ************************************************************************/
 
-#ifndef __SIGINSERT__
-#define __SIGINSERT__
+#ifndef __SIGRESAMPLE__
+#define __SIGRESAMPLE__
 
 #include "sigIdentity.hh"
 
@@ -29,11 +29,10 @@
 // to any optimisations to avoid to scramble int and float expressions
 //----------------------------------------------------------------------
 
-class SignalInsert : public SignalIdentity {
-    int fDepth;
+class SignalResample : public SignalIdentity {
 
    public:
-    SignalInsert(int depth) : fDepth(depth) {}
+    SignalResample()  {}
 
    protected:
     virtual Tree transformation(Tree sig);

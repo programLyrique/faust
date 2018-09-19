@@ -158,7 +158,7 @@ Tree InstructionsCompiler::prepare(Tree LS)
     endTiming("Cast and Promotion");
 
     typeAnnotation(L2, gGlobal->gLocalCausalityCheck);  // Annotate L1 with type information
-    SignalInsert SI;
+    SignalInsert SI(3);
     Tree         L2b = SI.mapself(L2);
 
     startTiming("simplification");

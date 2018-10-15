@@ -288,19 +288,19 @@ bool InstructionsCompiler::getTableNameProperty(Tree sig, string& name)
 ValueInst* InstructionsCompiler::CS(Tree sig)
 {
     ValueInst* code;
-    
+
     if (!getCompiledExpression(sig, code)) {
         code = generateCode(sig);
         setCompiledExpression(sig, code);
     }
-    
+
     return code;
 }
 
 CodeContainer* InstructionsCompiler::signal2Container(const string& name, Tree sig)
 {
     ::Type t = getCertifiedSigType(sig);
-    
+
     CodeContainer*       container = fContainer->createScalarContainer(name, t->nature());
     InstructionsCompiler C(container);
     C.compileSingleSignal(sig);
@@ -528,13 +528,7 @@ ValueInst* InstructionsCompiler::generateCode(Tree sig)
     else if (isSigAttach(sig, x, y)) {
         CS(y);
         return generateCacheCode(sig, CS(x));
-<<<<<<< HEAD
-    /*
-    HACK : 09/12/11
-=======
     }
-
->>>>>>> Parse multirate instr and no-op compile them.
     else if (isSigVectorize(sig, x, y)) {
         CS(x);
         CS(y);
@@ -559,18 +553,7 @@ ValueInst* InstructionsCompiler::generateCode(Tree sig)
         CS(y);
         return InstBuilder::genNullInst();
     }
-<<<<<<< HEAD
-    */
-    } else if (isSigEnable(sig, x, y)) {
-        stringstream error;
-        error << "ERROR when compiling, unrecognized signal : " << ppsig(sig);
-        error << " (enable/control can currently only be used with -lang ocpp backend in scalar mode)\n";
-        throw faustexception(error.str());
-    } else {
-=======
-
     else {
->>>>>>> Parse multirate instr and no-op compile them.
         stringstream error;
         error << "ERROR when compiling, unrecognized signal : " << ppsig(sig) << endl;
         throw faustexception(error.str());
@@ -585,7 +568,7 @@ ValueInst* InstructionsCompiler::generateCode(Tree sig)
 ValueInst* InstructionsCompiler::generateIntNumber(Tree sig, int num)
 {
     Occurences* o = fOccMarkup.retrieve(sig);
-    
+
     // Check for number occuring in delays
     if (o->getMaxDelay() > 0) {
         Typed::VarType ctype;
@@ -593,7 +576,7 @@ ValueInst* InstructionsCompiler::generateIntNumber(Tree sig, int num)
         getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
         generateDelayVec(sig, InstBuilder::genInt32NumInst(num), ctype, vname, o->getMaxDelay());
     }
-    
+
     // No cache for numbers
     return InstBuilder::genInt32NumInst(num);
 }
@@ -602,14 +585,14 @@ ValueInst* InstructionsCompiler::generateRealNumber(Tree sig, double num)
 {
     Typed::VarType ctype = itfloat();
     Occurences*    o     = fOccMarkup.retrieve(sig);
-    
+
     // Check for number occuring in delays
     if (o->getMaxDelay() > 0) {
         string vname;
         getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
         generateDelayVec(sig, InstBuilder::genRealNumInst(ctype, num), ctype, vname, o->getMaxDelay());
     }
-    
+
     // No cache for numbers
     return InstBuilder::genRealNumInst(ctype, num);
 }
@@ -623,14 +606,14 @@ ValueInst* InstructionsCompiler::generateFConst(Tree sig, Tree type, const strin
     Typed::VarType ctype;
     string         vname;
     Occurences*    o = fOccMarkup.retrieve(sig);
-    
+
     fContainer->addIncludeFile(file);
-    
+
     // Keep SR generation state
     if (name == "fSamplingFreq") {
         fContainer->setGeneratedSR();
     }
-    
+
     // Check for number occuring in delays
     if (o->getMaxDelay() > 0) {
         getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
@@ -638,7 +621,7 @@ ValueInst* InstructionsCompiler::generateFConst(Tree sig, Tree type, const strin
                          sig, (name == "fSamplingFreq") ? InstBuilder::genLoadStructVar(name) : InstBuilder::genLoadGlobalVar(name),
                          ctype, vname, o->getMaxDelay());
     }
-    
+
     int sig_type = getCertifiedSigType(sig)->nature();
     if (name == "fSamplingFreq") {
         pushDeclare(InstBuilder::genDecStructVar(name, genBasicFIRTyped(sig_type)));
@@ -656,7 +639,7 @@ ValueInst* InstructionsCompiler::generateFConst(Tree sig, Tree type, const strin
 ValueInst* InstructionsCompiler::generateFVar(Tree sig, Tree type, const string& file, const string& name)
 {
     fContainer->addIncludeFile(file);
-    
+
     int sig_type = getCertifiedSigType(sig)->nature();
     pushExtGlobalDeclare(InstBuilder::genDecGlobalVar(name, genBasicFIRTyped(sig_type)));
     return generateCacheCode(sig, InstBuilder::genLoadGlobalVar(name));
@@ -672,7 +655,7 @@ ValueInst* InstructionsCompiler::generateInput(Tree sig, int idx)
     // int rate = getSigRate(sig);
     int rate = 1;
     fContainer->setInputRate(idx, rate);
-    
+
     // Cast to internal float
     ValueInst* res;
     // HACK for Rust backend
@@ -681,7 +664,7 @@ ValueInst* InstructionsCompiler::generateInput(Tree sig, int idx)
     } else {
         res = InstBuilder::genCastFloatInst(InstBuilder::genLoadArrayStackVar(subst("input$0", T(idx)), getCurrentLoopIndex()));
     }
-    
+
     if (gGlobal->gInPlace) {
         // inputs must be cached for in-place transformations
         return forceCacheCode(sig, res);
@@ -699,19 +682,19 @@ ValueInst* InstructionsCompiler::generateBinOp(Tree sig, int opcode, Tree a1, Tr
     int t1 = getCertifiedSigType(a1)->nature();
     int t2 = getCertifiedSigType(a2)->nature();
     int t3 = getCertifiedSigType(sig)->nature();
-    
+
     ValueInst* res;
     ValueInst* v1 = CS(a1);
     ValueInst* v2 = CS(a2);
-    
+
     interval i = getCertifiedSigType(a1)->getInterval();
     interval j = getCertifiedSigType(a2)->getInterval();
-    
+
     if (j.haszero()) {
         // potential division by zero
         // std::cerr << "WARNING : potential division by zero (" << i << "/" << j << ") in " << ppsig(sig) << std::endl;
     }
-    
+
     // Logical operations work on kInt32, so cast both operands here
     if (isLogicalOpcode(opcode)) {
         res = InstBuilder::genBinopInst(opcode, promote2int(t1, v1), promote2int(t2, v2));
@@ -737,7 +720,7 @@ ValueInst* InstructionsCompiler::generateBinOp(Tree sig, int opcode, Tree a1, Tr
     } else {
         res = cast2real(t3, InstBuilder::genBinopInst(opcode, v1, v2));
     }
-    
+
     return generateCacheCode(sig, res);
 }
 
@@ -750,17 +733,17 @@ ValueInst* InstructionsCompiler::generateFFun(Tree sig, Tree ff, Tree largs)
     fContainer->addIncludeFile(ffincfile(ff));
     fContainer->addLibrary(fflibfile(ff));
     string funname = ffname(ff);
-    
+
     if (!gGlobal->gAllowForeignFunction) {
         stringstream error;
         error << "ERROR : calling foreign function '" << funname << "'"
         << " is not allowed in this compilation mode!" << endl;
         throw faustexception(error.str());
     }
-    
+
     list<ValueInst*>  args_value;
     list<NamedTyped*> args_types;
-    
+
     for (int i = 0; i < ffarity(ff); i++) {
         stringstream num;
         num << i;
@@ -771,11 +754,11 @@ ValueInst* InstructionsCompiler::generateFFun(Tree sig, Tree ff, Tree largs)
         args_types.push_back(InstBuilder::genNamedTyped("dummy" + num.str(), argtype));
         args_value.push_back(InstBuilder::genCastInst(CS(parameter), argtype));
     }
-    
+
     // Add function declaration
     FunTyped* fun_type = InstBuilder::genFunTyped(args_types, genBasicFIRTyped(ffrestype(ff)));
     pushExtGlobalDeclare(InstBuilder::genDeclareFunInst(funname, fun_type));
-    
+
     return generateCacheCode(sig, InstBuilder::genCastInst(InstBuilder::genFunCallInst(funname, args_value),
                                                            genBasicFIRTyped(ffrestype(ff))));
 }
@@ -808,7 +791,7 @@ ValueInst* InstructionsCompiler::generateCacheCode(Tree sig, ValueInst* exp)
     int            sharing = getSharingCount(sig);
     Occurences*    o       = fOccMarkup.retrieve(sig);
     faustassert(o);
-    
+
     // Check for expression occuring in delays
     if (o->getMaxDelay() > 0) {
         getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
@@ -817,10 +800,10 @@ ValueInst* InstructionsCompiler::generateCacheCode(Tree sig, ValueInst* exp)
         } else {
             return generateDelayVec(sig, exp, ctype, vname, o->getMaxDelay());
         }
-  
+
     } else if (sharing > 1 || (o->hasMultiOccurences())) {
         return generateVariableStore(sig, exp);
-        
+
     } else if (sharing == 1) {
         return exp;
 
@@ -865,7 +848,7 @@ ValueInst* InstructionsCompiler::generateVariableStore(Tree sig, ValueInst* exp)
     string         vname;
     Typed::VarType ctype;
     ::Type         t = getCertifiedSigType(sig);
-    
+
     switch (t->variability()) {
         case kKonst:
             getTypedNames(t, "Const", ctype, vname);
@@ -920,12 +903,12 @@ ValueInst* InstructionsCompiler::generateButtonAux(Tree sig, Tree path, const st
 {
     string varname = gGlobal->getFreshID(name);
     Typed* type    = InstBuilder::genBasicTyped(Typed::kFloatMacro);
-    
+
     pushDeclare(InstBuilder::genDecStructVar(varname, type));
     pushResetUIInstructions(
                             InstBuilder::genStoreStructVar(varname, InstBuilder::genRealNumInst(Typed::kFloatMacro, 0)));
     addUIWidget(reverse(tl(path)), uiWidget(hd(path), tree(varname), sig));
-    
+
     // Cast to internal float
     return generateCacheCode(sig, InstBuilder::genCastFloatInst(InstBuilder::genLoadStructVar(varname)));
 }
@@ -945,12 +928,12 @@ ValueInst* InstructionsCompiler::generateSliderAux(Tree sig, Tree path, Tree cur
 {
     string varname = gGlobal->getFreshID(name);
     Typed* type    = InstBuilder::genBasicTyped(Typed::kFloatMacro);
-    
+
     pushDeclare(InstBuilder::genDecStructVar(varname, type));
     pushResetUIInstructions(
                             InstBuilder::genStoreStructVar(varname, InstBuilder::genRealNumInst(Typed::kFloatMacro, tree2float(cur))));
     addUIWidget(reverse(tl(path)), uiWidget(hd(path), tree(varname), sig));
-    
+
     // Cast to internal float
     return generateCacheCode(sig, InstBuilder::genCastFloatInst(InstBuilder::genLoadStructVar(varname)));
 }
@@ -975,26 +958,26 @@ ValueInst* InstructionsCompiler::generateBargraphAux(Tree sig, Tree path, Tree m
     string varname = gGlobal->getFreshID(name);
     pushDeclare(InstBuilder::genDecStructVar(varname, InstBuilder::genBasicTyped(Typed::kFloatMacro)));
     addUIWidget(reverse(tl(path)), uiWidget(hd(path), tree(varname), sig));
-    
+
     ::Type t = getCertifiedSigType(sig);
-    
+
     // Cast to external float
     StoreVarInst* res = InstBuilder::genStoreStructVar(varname, InstBuilder::genCastFloatMacroInst(exp));
-    
+
     switch (t->variability()) {
         case kKonst:
             pushResetUIInstructions(res);
             break;
-            
+
         case kBlock:
             pushComputeBlockMethod(res);
             break;
-            
+
         case kSamp:
             pushComputeDSPMethod(res);
             break;
     }
-    
+
     return generateCacheCode(sig, (t->nature() == kInt)
                              ? InstBuilder::genCastInt32Inst(InstBuilder::genLoadStructVar(varname))
                              : InstBuilder::genLoadStructVar(varname));
@@ -1014,26 +997,26 @@ ValueInst* InstructionsCompiler::generateSoundfile(Tree sig, Tree path)
 {
     string varname = gGlobal->getFreshID("fSoundfile");
     string SFcache = varname + "ca";
-    
+
     addUIWidget(reverse(tl(path)), uiWidget(hd(path), tree(varname), sig));
-    
+
     pushDeclare(InstBuilder::genDecStructVar(varname, InstBuilder::genBasicTyped(Typed::kSound_ptr)));
-    
+
     if (gGlobal->gUseDefaultSound) {
         BlockInst* block = InstBuilder::genBlockInst();
         block->pushBackInst(InstBuilder::genStoreStructVar(varname, InstBuilder::genLoadGlobalVar("defaultsound")));
-        
+
         pushResetUIInstructions(InstBuilder::genIfInst(
                                                        InstBuilder::genEqual(InstBuilder::genCastInst(InstBuilder::genLoadStructVar(varname),
                                                                                                       InstBuilder::genBasicTyped(Typed::kUint_ptr)),
                                                                              InstBuilder::genTypedZero(Typed::kSound_ptr)),
                                                        block, InstBuilder::genBlockInst()));
     }
-    
+
     pushComputeBlockMethod(InstBuilder::genDecStackVar(SFcache, InstBuilder::genBasicTyped(Typed::kSound_ptr),
                                                        InstBuilder::genLoadStructVar(varname)));
     pushPostComputeBlockMethod(InstBuilder::genStoreStructVar(varname, InstBuilder::genLoadStackVar(SFcache)));
-    
+
     return InstBuilder::genLoadStructVar(varname);
 }
 
@@ -1041,17 +1024,17 @@ ValueInst* InstructionsCompiler::generateSoundfileLength(Tree sig, ValueInst* sf
 {
     LoadVarInst* load = dynamic_cast<LoadVarInst*>(sf);
     faustassert(load);
-    
+
     Typed* type = InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(Typed::kInt32), MAX_SOUNDFILE_PARTS, true);
-    
+
     string SFcache        = load->fAddress->getName() + "ca";
     string SFcache_length = gGlobal->getFreshID(SFcache + "_le");
-    
+
     // Struct access using an index that will be converted as a field name
     ValueInst* v1 = InstBuilder::genLoadStructPtrVar(load->fAddress->getName() + "ca", Address::kStack,
                                                      InstBuilder::genInt32NumInst(1));
     pushComputeBlockMethod(InstBuilder::genDecStackVar(SFcache_length, type, v1));
-    
+
     return InstBuilder::genLoadArrayStackVar(SFcache_length, x);
 }
 
@@ -1059,17 +1042,17 @@ ValueInst* InstructionsCompiler::generateSoundfileRate(Tree sig, ValueInst* sf, 
 {
     LoadVarInst* load = dynamic_cast<LoadVarInst*>(sf);
     faustassert(load);
-    
+
     Typed* type = InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(Typed::kInt32), MAX_SOUNDFILE_PARTS, true);
-    
+
     string SFcache        = load->fAddress->getName() + "ca";
     string SFcache_length = gGlobal->getFreshID(SFcache + "_ra");
-    
+
     // Struct access using an index that will be converted as a field name
     ValueInst* v1 = InstBuilder::genLoadStructPtrVar(load->fAddress->getName() + "ca", Address::kStack,
                                                      InstBuilder::genInt32NumInst(2));
     pushComputeBlockMethod(InstBuilder::genDecStackVar(SFcache_length, type, v1));
-    
+
     return InstBuilder::genLoadArrayStackVar(SFcache_length, x);
 }
 
@@ -1078,29 +1061,29 @@ ValueInst* InstructionsCompiler::generateSoundfileBuffer(Tree sig, ValueInst* sf
 {
     LoadVarInst* load = dynamic_cast<LoadVarInst*>(sf);
     faustassert(load);
-    
+
     Typed* type1 = InstBuilder::genBasicTyped(Typed::kFloatMacro_ptr_ptr);
     Typed* type2 = InstBuilder::genBasicTyped(Typed::kFloatMacro);
     Typed* type3 = InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(Typed::kInt32), MAX_SOUNDFILE_PARTS, true);
-    
+
     string SFcache             = load->fAddress->getName() + "ca";
     string SFcache_buffer      = gGlobal->getFreshID(SFcache + "_bu");
     string SFcache_buffer_chan = gGlobal->getFreshID(SFcache + "_bu_ch");
     string SFcache_offset      = gGlobal->getFreshID(SFcache + "_of");
-    
+
     // Struct access using an index that will be converted as a field name
     ValueInst* v1 = InstBuilder::genLoadStructPtrVar(load->fAddress->getName() + "ca", Address::kStack,
                                                      InstBuilder::genInt32NumInst(3));
     pushComputeBlockMethod(InstBuilder::genDecStackVar(SFcache_offset, type3, v1));
-    
+
     // Struct access using an index that will be converted as a field name
     LoadVarInst* load1 = InstBuilder::genLoadStructPtrVar(SFcache, Address::kStack, InstBuilder::genInt32NumInst(0));
-    
+
     pushComputeBlockMethod(InstBuilder::genDecStackVar(SFcache_buffer, type1, load1));
     pushComputeBlockMethod(
                            InstBuilder::genDecStackVar(SFcache_buffer_chan, InstBuilder::genArrayTyped(type2, 0),
                                                        InstBuilder::genLoadStructPtrVar(SFcache_buffer, Address::kStack, x)));
-    
+
     return InstBuilder::genLoadStructPtrVar(
                                             SFcache_buffer_chan, Address::kStack,
                                             InstBuilder::genAdd(InstBuilder::genLoadArrayStackVar(SFcache_offset, y), z));
@@ -1121,7 +1104,7 @@ ValueInst* InstructionsCompiler::generateTable(Tree sig, Tree tsize, Tree conten
     Tree           g;
     string         vname;
     int            size;
-    
+
     // already compiled but check if we need to add declarations
     faustassert(isSigGen(content, g));
     pair<string, string> kvnames;
@@ -1137,7 +1120,7 @@ ValueInst* InstructionsCompiler::generateTable(Tree sig, Tree tsize, Tree conten
         pushInitMethod(InstBuilder::genDecStackVar(
                                                    kvnames.second, InstBuilder::genNamedTyped(kvnames.first, InstBuilder::genBasicTyped(Typed::kObj_ptr)),
                                                    obj));
-        
+
         // HACK for Rust backend
         if (gGlobal->gOutputLang != "rust") {
             // Delete object
@@ -1149,29 +1132,29 @@ ValueInst* InstructionsCompiler::generateTable(Tree sig, Tree tsize, Tree conten
             pushPostInitMethod(InstBuilder::genVoidFunCallInst("delete" + kvnames.first, args3));
         }
     }
-    
+
     if (!isSigInt(tsize, &size)) {
         stringstream error;
         error << "ERROR in generateTable : " << *tsize << " is not an integer expression " << endl;
         throw faustexception(error.str());
     }
-    
+
     // Define table name and type
     getTypedNames(getCertifiedSigType(content), "tbl", ctype, vname);
-    
+
     // Table declaration
     pushDeclare(
                 InstBuilder::genDecStructVar(vname, InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(ctype), size)));
-    
+
     string tablename;
     getTableNameProperty(content, tablename);
-    
+
     // Init content generator
     list<ValueInst*> args1;
     args1.push_back(generator);
     args1.push_back(InstBuilder::genLoadFunArgsVar("samplingFreq"));
     pushInitMethod(InstBuilder::genVoidFunCallInst("instanceInit" + tablename, args1, true));
-    
+
     // Fill the table
     list<ValueInst*> args2;
     args2.push_back(generator);
@@ -1179,7 +1162,7 @@ ValueInst* InstructionsCompiler::generateTable(Tree sig, Tree tsize, Tree conten
     // HACK for Rust backend
     args2.push_back(InstBuilder::genLoadMutRefStructVar(vname));
     pushInitMethod(InstBuilder::genVoidFunCallInst("fill" + tablename, args2, true));
-    
+
     // Return table access
     return InstBuilder::genLoadStructVar(vname);
 }
@@ -1191,9 +1174,9 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
     Typed::VarType ctype;
     string         vname;
     int            size;
-    
+
     ensure(isSigGen(content, g));
-    
+
     if (!getCompiledExpression(content, cexp)) {
         cexp = setCompiledExpression(content, generateStaticSigGen(content, g));
     } else {
@@ -1211,7 +1194,7 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
             pushInitMethod(InstBuilder::genDecStackVar(
                                                        kvnames.second, InstBuilder::genNamedTyped(kvnames.first, InstBuilder::genBasicTyped(Typed::kObj_ptr)),
                                                        obj));
-            
+
             // HACK for Rust backend
             if (gGlobal->gOutputLang != "rust") {
                 // Delete object
@@ -1224,20 +1207,20 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
             }
         }
     }
-    
+
     if (!isSigInt(tsize, &size)) {
         stringstream error;
         error << "ERROR in generateStaticTable : " << *tsize << " is not an integer expression " << endl;
         throw faustexception(error.str());
     }
-    
+
     // Define table name and type
     getTypedNames(getCertifiedSigType(content), "tbl", ctype, vname);
-    
+
     string tablename;
     getTableNameProperty(content, tablename);
     vname += tablename;
-    
+
     // Table declaration
     if (gGlobal->gMemoryManager) {
         pushGlobalDeclare(InstBuilder::genDecStaticStructVar(
@@ -1246,13 +1229,13 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
         pushGlobalDeclare(InstBuilder::genDecStaticStructVar(
                                                              vname, InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(ctype), size)));
     }
-    
+
     // Init content generator
     list<ValueInst*> args1;
     args1.push_back(cexp);
     args1.push_back(InstBuilder::genLoadFunArgsVar("samplingFreq"));
     pushStaticInitMethod(InstBuilder::genVoidFunCallInst("instanceInit" + tablename, args1, true));
-    
+
     if (gGlobal->gMemoryManager) {
         list<ValueInst*> alloc_args;
         alloc_args.push_back(InstBuilder::genLoadStaticStructVar("fManager"));
@@ -1260,13 +1243,13 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
         pushStaticInitMethod(InstBuilder::genStoreStaticStructVar(
                                                                   vname, InstBuilder::genCastInst(InstBuilder::genFunCallInst("allocate", alloc_args, true),
                                                                                                   InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(ctype), 0))));
-        
+
         list<ValueInst*> destroy_args;
         destroy_args.push_back(InstBuilder::genLoadStaticStructVar("fManager"));
         destroy_args.push_back(InstBuilder::genLoadStaticStructVar(vname));
         pushStaticDestroyMethod(InstBuilder::genVoidFunCallInst("destroy", destroy_args, true));
     }
-    
+
     // Fill the table
     list<ValueInst*> args2;
     args2.push_back(cexp);
@@ -1274,7 +1257,7 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
     // HACK for Rust backend
     args2.push_back(InstBuilder::genLoadStaticMutRefStructVar(vname));
     pushStaticInitMethod(InstBuilder::genVoidFunCallInst("fill" + tablename, args2, true));
-    
+
     // Return table access
     return InstBuilder::genLoadStaticStructVar(vname);
 }
@@ -1288,15 +1271,15 @@ ValueInst* InstructionsCompiler::generateWRTbl(Tree sig, Tree tbl, Tree idx, Tre
     ValueInst*   tblname    = CS(tbl);
     LoadVarInst* load_value = dynamic_cast<LoadVarInst*>(tblname);
     faustassert(load_value);
-    
+
     // Check types and possibly cast written value
     int table_type = getCertifiedSigType(tbl)->nature();
     int data_type  = getCertifiedSigType(data)->nature();
-    
+
     pushComputeDSPMethod(InstBuilder::genStoreArrayStructVar(
                                                              load_value->fAddress->getName(), CS(idx),
                                                              (table_type != data_type) ? InstBuilder::genCastInst(CS(data), genBasicFIRTyped(table_type)) : CS(data)));
-    
+
     // Return table access
     return InstBuilder::genLoadStructVar(load_value->fAddress->getName());
 }
@@ -1311,7 +1294,7 @@ ValueInst* InstructionsCompiler::generateRDTbl(Tree sig, Tree tbl, Tree idx)
     Tree                id, size, content;
     ValueInst*          tblname;
     Address::AccessType access;
-    
+
     if (isSigTable(tbl, id, size, content)) {
         access = Address::kStaticStruct;
         if (!getCompiledExpression(tbl, tblname)) {
@@ -1321,10 +1304,10 @@ ValueInst* InstructionsCompiler::generateRDTbl(Tree sig, Tree tbl, Tree idx)
         access  = Address::kStruct;
         tblname = CS(tbl);
     }
-    
+
     LoadVarInst* load_value1 = dynamic_cast<LoadVarInst*>(tblname);
     faustassert(load_value1);
-    
+
     LoadVarInst* load_value2 = InstBuilder::genLoadArrayVar(load_value1->fAddress->getName(), access, CS(idx));
     return generateCacheCode(sig, load_value2);
 }
@@ -1333,10 +1316,10 @@ ValueInst* InstructionsCompiler::generateSigGen(Tree sig, Tree content)
 {
     string cname   = gGlobal->getFreshID(fContainer->getClassName() + "SIG");
     string signame = gGlobal->getFreshID("sig");
-    
+
     CodeContainer* subcontainer = signal2Container(cname, content);
     fContainer->addSubContainer(subcontainer);
-    
+
     // We must allocate an object of type "cname"
     list<ValueInst*> args;
     if (gGlobal->gMemoryManager) {
@@ -1345,7 +1328,7 @@ ValueInst* InstructionsCompiler::generateSigGen(Tree sig, Tree content)
     ValueInst* obj = InstBuilder::genFunCallInst("new" + cname, args);
     pushInitMethod(InstBuilder::genDecStackVar(signame, InstBuilder::genNamedTyped(cname,
                                                                                    InstBuilder::genBasicTyped(Typed::kObj_ptr)), obj));
-    
+
     // HACK for Rust backend
     if (gGlobal->gOutputLang != "rust") {
         // Delete object
@@ -1356,10 +1339,10 @@ ValueInst* InstructionsCompiler::generateSigGen(Tree sig, Tree content)
         }
         pushPostInitMethod(InstBuilder::genVoidFunCallInst("delete" + cname, args3));
     }
-    
+
     setTableNameProperty(sig, cname);
     fInstanceInitProperty.set(content, pair<string, string>(cname, signame));
-    
+
     return InstBuilder::genLoadStackVar(signame);
 }
 
@@ -1367,10 +1350,10 @@ ValueInst* InstructionsCompiler::generateStaticSigGen(Tree sig, Tree content)
 {
     string cname   = gGlobal->getFreshID(fContainer->getClassName() + "SIG");
     string signame = gGlobal->getFreshID("sig");
-    
+
     CodeContainer* subcontainer = signal2Container(cname, content);
     fContainer->addSubContainer(subcontainer);
-    
+
     // We must allocate an object of type "cname"
     list<ValueInst*> args;
     if (gGlobal->gMemoryManager) {
@@ -1379,7 +1362,7 @@ ValueInst* InstructionsCompiler::generateStaticSigGen(Tree sig, Tree content)
     ValueInst* obj = InstBuilder::genFunCallInst("new" + cname, args);
     pushStaticInitMethod(InstBuilder::genDecStackVar(
                                                      signame, InstBuilder::genNamedTyped(cname, InstBuilder::genBasicTyped(Typed::kObj_ptr)), obj));
-    
+
     // HACK for Rust backend
     if (gGlobal->gOutputLang != "rust") {
         // Delete object
@@ -1390,10 +1373,10 @@ ValueInst* InstructionsCompiler::generateStaticSigGen(Tree sig, Tree content)
         }
         pushPostStaticInitMethod(InstBuilder::genVoidFunCallInst("delete" + cname, args3));
     }
-    
+
     setTableNameProperty(sig, cname);
     fStaticInitProperty.set(content, pair<string, string>(cname, signame));
-    
+
     return InstBuilder::genLoadStackVar(signame);
 }
 
@@ -1409,7 +1392,7 @@ ValueInst* InstructionsCompiler::generateRecProj(Tree sig, Tree r, int i)
     string     vname;
     Tree       var, le;
     ValueInst* res;
-    
+
     if (!getVectorNameProperty(sig, vname)) {
         ensure(isRec(r, var, le));
         res = generateRec(r, var, le, i);
@@ -1426,13 +1409,13 @@ ValueInst* InstructionsCompiler::generateRecProj(Tree sig, Tree r, int i)
 ValueInst* InstructionsCompiler::generateRec(Tree sig, Tree var, Tree le, int index)
 {
     int N = len(le);
-    
+
     ValueInst*             res = NULL;
     vector<bool>           used(N);
     vector<int>            delay(N);
     vector<string>         vname(N);
     vector<Typed::VarType> ctype(N);
-    
+
     // Prepare each element of a recursive definition
     for (int i = 0; i < N; i++) {
         Tree e = sigProj(i, sig);  // recreate each recursive definition
@@ -1448,7 +1431,7 @@ ValueInst* InstructionsCompiler::generateRec(Tree sig, Tree var, Tree le, int in
             used[i] = false;
         }
     }
-    
+
     // Generate delayline for each element of a recursive definition
     for (int i = 0; i < N; i++) {
         if (used[i]) {
@@ -1460,7 +1443,7 @@ ValueInst* InstructionsCompiler::generateRec(Tree sig, Tree var, Tree le, int in
             }
         }
     }
-    
+
     return res;
 }
 
@@ -1473,18 +1456,18 @@ ValueInst* InstructionsCompiler::generatePrefix(Tree sig, Tree x, Tree e)
     string         vperm = gGlobal->getFreshID("M");
     string         vtemp = gGlobal->getFreshID("T");
     Typed::VarType type  = ctType(getCertifiedSigType(sig));
-    
+
     // Table declaration
     pushDeclare(InstBuilder::genDecStructVar(vperm, InstBuilder::genBasicTyped(type)));
-    
+
     // Init
     pushInitMethod(InstBuilder::genStoreStructVar(vperm, CS(x)));
-    
+
     // Exec
     pushComputeDSPMethod(
                          InstBuilder::genDecStructVar(vtemp, InstBuilder::genBasicTyped(type), InstBuilder::genLoadStructVar(vperm)));
     pushComputeDSPMethod(InstBuilder::genStoreStructVar(vperm, CS(e)));
-    
+
     return InstBuilder::genLoadStackVar(vtemp);
 }
 
@@ -1506,10 +1489,10 @@ void InstructionsCompiler::ensureIotaCode()
 {
     if (!fLoadedIota) {
         fLoadedIota = true;
-        
+
         pushDeclare(InstBuilder::genDecStructVar("IOTA", InstBuilder::genBasicTyped(Typed::kInt32)));
         pushClearMethod(InstBuilder::genStoreStructVar("IOTA", InstBuilder::genInt32NumInst(0)));
-        
+
         FIRIndex value = FIRIndex(InstBuilder::genLoadStructVar("IOTA")) + 1;
         pushComputePostDSPMethod(InstBuilder::genStoreStructVar("IOTA", value));
     }
@@ -1524,18 +1507,18 @@ ValueInst* InstructionsCompiler::generateSelect2(Tree sig, Tree sel, Tree s1, Tr
     ValueInst* cond = CS(sel);
     ValueInst* v1   = CS(s1);
     ValueInst* v2   = CS(s2);
-    
+
     int t1 = getCertifiedSigType(s1)->nature();
     int t2 = getCertifiedSigType(s2)->nature();
-    
+
     ::Type type = getCertifiedSigType(s1);
-    
+
     // Type promotion
     if ((t1 == kReal) || (t2 == kReal)) {
         v1 = promote2real(t1, v1);
         v2 = promote2real(t2, v2);
     }
-    
+
     if (gGlobal->gGenerateSelectWithIf && (type->variability() == kSamp) &&
         (!v1->isSimpleValue() || !v2->isSimpleValue())) {
         return generateSelect2WithIf(sig, (((t1 == kReal) || (t2 == kReal)) ? itfloat() : Typed::kInt32), cond, v1, v2);
@@ -1556,12 +1539,12 @@ ValueInst* InstructionsCompiler::generateSelect2WithIf(Tree sig, Typed::VarType 
     string     vname  = gGlobal->getFreshID(((type == Typed::kInt32) ? "iSel" : "fSel"));
     BlockInst* block1 = InstBuilder::genBlockInst();
     BlockInst* block2 = InstBuilder::genBlockInst();
-    
+
     block1->pushBackInst(InstBuilder::genStoreStackVar(vname, v1));
     block2->pushBackInst(InstBuilder::genStoreStackVar(vname, v2));
     DeclareVarInst* var =
     InstBuilder::genDecStackVar(vname, InstBuilder::genBasicTyped(type), InstBuilder::genTypedZero(type));
-    
+
     /*
      generateSelect2WithIf only called for kSamp code for now
      (otherwise generated "sel" variables are not correctly handled in -sch mode when they are moved from "compute" to
@@ -1569,15 +1552,15 @@ ValueInst* InstructionsCompiler::generateSelect2WithIf(Tree sig, Typed::VarType 
      */
     pushComputeDSPMethod(var);
     pushComputeDSPMethod(InstBuilder::genIfInst(cond, block2, block1));
-    
+
     /*
      switch (type->variability()) {
-     
+
      case kBlock:
         pushComputeBlockMethod(var);
         pushComputeBlockMethod(InstBuilder::genIfInst(cond, block2, block1));
         break;
-     
+
      case kSamp:
         case kKonst:
         pushComputeDSPMethod(var);
@@ -1585,7 +1568,7 @@ ValueInst* InstructionsCompiler::generateSelect2WithIf(Tree sig, Typed::VarType 
         break;
      }
      */
-    
+
     return generateCacheCode(sig, InstBuilder::genLoadStackVar(vname));
 }
 
@@ -1620,23 +1603,23 @@ ValueInst* InstructionsCompiler::generateXtended(Tree sig)
 
 /*****************************************************************************
  N-SAMPLE FIXED DELAY : sig = exp@delay
- 
+
  case 1-sample max delay :
  Y(t-0)	Y(t-1)
  Temp	Var                     gLessTempSwitch = false
  V[0]	V[1]                    gLessTempSwitch = true
- 
+
  case max delay < gMaxCopyDelay :
  Y(t-0)	Y(t-1)	Y(t-2)  ...
  Temp	V[0]	V[1]	...     gLessTempSwitch = false
  V[0]	V[1]	V[2]	...     gLessTempSwitch = true
- 
+
  case max delay >= gMaxCopyDelay :
  Y(t-0)	Y(t-1)	Y(t-2)  ...
  Temp	V[0]	V[1]	...
  V[0]	V[1]	V[2]	...
- 
- 
+
+
  *****************************************************************************/
 
 /**
@@ -1673,7 +1656,7 @@ ValueInst* InstructionsCompiler::generateFixDelay(Tree sig, Tree exp, Tree delay
     } else {
         // Long delay : we use a ring buffer of size 2^x
         int N = pow2limit(mxd + 1);
-        
+
         FIRIndex value2 =
             (FIRIndex(InstBuilder::genLoadStructVar("IOTA")) - CS(delay)) & InstBuilder::genInt32NumInst(N - 1);
         return generateCacheCode(sig, InstBuilder::genLoadArrayStructVar(vname, value2));
@@ -1819,18 +1802,18 @@ ValueInst* InstructionsCompiler::generateDelayLine(ValueInst* exp, Typed::VarTyp
 void InstructionsCompiler::declareWaveform(Tree sig, string& vname, int& size)
 {
     // computes C type and unique name for the waveform
-    
+
     Typed::VarType ctype;
     getTypedNames(getCertifiedSigType(sig), fContainer->getClassName() + "Wave", ctype, vname);
     size = sig->arity();
-    
+
     // Declares the Waveform
     Typed*     type      = InstBuilder::genArrayTyped(InstBuilder::genBasicTyped(ctype), size);
     ValueInst* num_array = InstBuilder::genArrayNumInst(ctype, size);
-    
+
     double r;
     int    i;
-    
+
     if (ctype == Typed::kInt32) {
         Int32ArrayNumInst* int_array = dynamic_cast<Int32ArrayNumInst*>(num_array);
         faustassert(int_array);
@@ -1864,14 +1847,14 @@ void InstructionsCompiler::declareWaveform(Tree sig, string& vname, int& size)
     } else {
         faustassert(false);
     }
-    
+
     if (gGlobal->gWaveformInDSP) {
         // waveform are allocated in the DSP and not as global data
         pushStaticInitMethod(InstBuilder::genDecStaticStructVar(vname, type, num_array));
     } else {
         pushGlobalDeclare(InstBuilder::genDecStaticStructVar(vname, type, num_array));
     }
-    
+
     string idx = subst("$0_idx", vname);
     pushDeclare(InstBuilder::genDecStructVar(idx, InstBuilder::genBasicTyped(Typed::kInt32)));
     pushInitMethod(InstBuilder::genStoreStructVar(idx, InstBuilder::genInt32NumInst(0)));
@@ -1881,9 +1864,9 @@ ValueInst* InstructionsCompiler::generateWaveform(Tree sig)
 {
     string vname;
     int    size;
-    
+
     declareWaveform(sig, vname, size);
-    
+
     string   idx   = subst("$0_idx", vname);
     FIRIndex index = (FIRIndex(1) + InstBuilder::genLoadStructVar(idx)) % InstBuilder::genInt32NumInst(size);
     pushComputePostDSPMethod(InstBuilder::genStoreStructVar(idx, index));
@@ -2132,4 +2115,3 @@ void InstructionsCompiler::generateWidgetMacro(const string& pathname, Tree full
         throw faustexception("ERROR in generating widget code\n");
     }
 }
-

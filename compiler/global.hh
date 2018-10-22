@@ -385,6 +385,7 @@ struct global {
     Sym SIMPLETYPE;
     Sym TABLETYPE;
     Sym TUPLETTYPE;
+    Sym VECTORTYPE;
 
     // Memoized type contruction
     property<AudioType*>* gMemoizedTypes;

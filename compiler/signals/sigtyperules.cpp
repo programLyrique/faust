@@ -61,6 +61,11 @@ static Type infereWaveformType(Tree lv, Tree env);
 
 static interval arithmetic(int opcode, const interval& x, const interval& y);
 
+static Type infereVectorizeType(Tree sig, Type T, Type Tsize);
+static Type infereSerializeType(Tree sig, Type Tvec);
+static Type infereConcatType(Type Tvec1, Type Tvec2);
+static Type infereVectorAtType(Type Tvec, Type Tidx);
+
 // Uncomment to activate type inferrence tracing
 //#define TRACE(x) x
 #define TRACE(x) ;
@@ -285,9 +290,11 @@ static Type infereSigType(Tree sig, Tree env)
     }
 
     else if (isSigFixDelay(sig, s1, s2)) {
-        Type     t1 = T(s1, env);
-        Type     t2 = T(s2, env);
-        interval i  = t2->getInterval();
+        Type        vt1 = T(s1, env);
+        vector<int> dim;
+        Type        t1 = vt1->dimensions(dim);
+        Type        t2 = T(s2, env);
+        interval    i  = t2->getInterval();
 
         //        cerr << "for sig fix delay : s1 = "
         //				<< t1 << ':' << ppsig(s1) << ", s2 = "
@@ -308,22 +315,33 @@ static Type infereSigType(Tree sig, Tree env)
             }
         }
 
-        return castInterval(sampCast(t1), reunion(t1->getInterval(), interval(0, 0)));
+        Type nt1 = castInterval(sampCast(t1), reunion(t1->getInterval(), interval(0, 0)));
+        return makeVectorType(nt1, dim);
     }
 
     else if (isSigBinOp(sig, &i, s1, s2)) {
         // Type t = T(s1,env)|T(s2,env);
         Type t1 = T(s1, env);
         Type t2 = T(s2, env);
-        Type t3 = castInterval(t1 | t2, arithmetic(i, t1->getInterval(), t2->getInterval()));
-        // cerr <<"type rule for : " << ppsig(sig) << " -> " << *t3 << endl;
 
-        if (i == kDiv) {
-            return floatCast(t3);  // division always result in a float even with int arguments
-        } else if ((i >= kGT) && (i <= kNE)) {
-            return boolCast(t3);  // comparison always result in a boolean int
+        vector<int> D1, D2, D3;
+        Type        b1 = t1->dimensions(D1);
+        Type        b2 = t2->dimensions(D2);
+
+        if (maxdimensions(D1, D2, D3)) {
+            Type b3 = castInterval(b1 | b2, arithmetic(i, b1->getInterval(), b2->getInterval()));
+            if (i == kDiv) {
+                b3 = floatCast(b3);  // result of division always float
+            } else if ((i >= kGT) && (i <= kNE)) {
+                b3 = boolCast(b3);  // result of compare always boolean
+            }
+            Type t3 = makeVectorType(b3, D3);
+            return t3;
         } else {
-            return t3;  //  otherwise most general of t1 and t2
+            stringstream error;
+            error << "ERROR operation on incompatible types : " << *t1 << " and " << *t2
+                 << " in expression : " << ppsig(sig) << endl;
+            throw faustexception(error.str());
         }
     }
 
@@ -486,16 +504,13 @@ static Type infereSigType(Tree sig, Tree env)
     }
 
     else if (isSigVectorize(sig, n, s)) {
-        Type t1 = T(n, env);
-        return T(s, env);
+        return infereVectorizeType(sig, T(x, env), T(y, env));
     } else if (isSigSerialize(sig, x)) {
-        return T(x, env);
+        return infereSerializeType(sig, T(x, env));
     } else if (isSigConcat(sig, x, y)) {
-        Type t1 = T(x, env);
-        return T(y, env);
+        return infereConcatType(T(x, env), T(y, env));
     } else if (isSigVectorAt(sig, s, n)) {
-        Type t1 = T(n, env);
-        return T(s, env);
+        return infereVectorAtType(T(x, env), T(y, env));
     }
 
     else if (isSigUpSample(sig, x, y)) {
@@ -791,4 +806,67 @@ static interval arithmetic(int opcode, const interval& x, const interval& y)
     }
 
     return interval();
+}
+
+static Type infereVectorizeType(Tree sig, Type Tsize, Type T)
+{
+    SimpleType* st = isSimpleType(Tsize);
+    if (st && st->nature() == kInt) {
+        interval i = Tsize->getInterval();
+        if (i.valid && i.lo >= 0 && i.lo == i.hi) {
+            return new VectorType(int(i.lo + 0.5), T);
+        }
+    }
+    stringstream error;
+    error << "ERROR in expression : " << ppsig(sig) << endl;
+    error << "the size of the vector is not of a valide type : " << *Tsize << endl;
+    throw faustexception(error.str());
+}
+
+static Type infereSerializeType(Tree sig, Type Tvec)
+{
+    VectorType* vt = isVectorType(Tvec);
+    if (vt) {
+        return vt->content();
+    } else {
+        stringstream error;
+        error << "ERROR in expression : " << ppsig(sig) << endl;
+        error << "the 'serialize' operation can only be used on vectorized signals" << endl;
+        throw faustexception(error.str());
+    }
+}
+
+static Type infereConcatType(Type Tvec1, Type Tvec2)
+{
+    VectorType* vt1 = isVectorType(Tvec1);
+    VectorType* vt2 = isVectorType(Tvec2);
+
+    if (vt1 && vt2) {
+        Type ct1 = vt1->content();
+        Type ct2 = vt2->content();
+        if (ct1 == ct2) {
+            return new VectorType(vt1->size() + vt2->size(), ct1);
+        }
+    }
+    stringstream error;
+    error << "ERROR in vector concatenation, the types : " << Tvec1 << " and " << Tvec2 << " are incompatible" << endl;
+    throw faustexception(error.str());
+}
+
+static Type infereVectorAtType(Type Tvec, Type Tidx)
+{
+    VectorType* vt = isVectorType(Tvec);
+    SimpleType* it = isSimpleType(Tidx);
+
+    if (vt && it) {
+        Type     ct = vt->content();
+        int      n  = vt->size();
+        interval i  = it->getInterval();
+        if (i.valid && i.lo >= 0 && i.hi <= n) {
+            return ct;
+        }
+    }
+    stringstream error;
+    error << "ERROR in vector access, with types : " << Tvec << " and " << Tidx << endl;
+    throw faustexception(error.str());
 }

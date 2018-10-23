@@ -226,6 +226,8 @@ int getSubSignals(Tree sig, vector<Tree>& vsigs, bool visitgen)
         return 0;
     }
 
+    // multirate extension
+
     else if (isSigVectorize(sig, x, y)) {
         vsigs.push_back(x);
         vsigs.push_back(y);

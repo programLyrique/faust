@@ -32,3 +32,9 @@ compiler/faust
 !*.xcodeproj/xcshareddata/
 !*.xcworkspace/contents.xcworkspacedata
 tests/impulse-tests/ir
+
+
+*.png
+*.dot
+*.wav
+*.rs

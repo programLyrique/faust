@@ -61,14 +61,14 @@ static Type infereWaveformType(Tree lv, Tree env);
 
 static interval arithmetic(int opcode, const interval& x, const interval& y);
 
-static Type infereVectorizeType(Tree sig, Type T, Type Tsize);
+static Type infereVectorizeType(Tree sig, Type Tsize, Type T);
 static Type infereSerializeType(Tree sig, Type Tvec);
 static Type infereConcatType(Type Tvec1, Type Tvec2);
 static Type infereVectorAtType(Type Tvec, Type Tidx);
 
 // Uncomment to activate type inferrence tracing
-//#define TRACE(x) x
-#define TRACE(x) ;
+#define TRACE(x) x
+//#define TRACE(x) ;
 
 /**
  * The empty type environment (also property key for closed term type)
@@ -504,13 +504,13 @@ static Type infereSigType(Tree sig, Tree env)
     }
 
     else if (isSigVectorize(sig, n, s)) {
-        return infereVectorizeType(sig, T(x, env), T(y, env));
+        return infereVectorizeType(sig, T(n, env), T(s, env));
     } else if (isSigSerialize(sig, x)) {
         return infereSerializeType(sig, T(x, env));
     } else if (isSigConcat(sig, x, y)) {
         return infereConcatType(T(x, env), T(y, env));
     } else if (isSigVectorAt(sig, s, n)) {
-        return infereVectorAtType(T(x, env), T(y, env));
+        return infereVectorAtType(T(s, env), T(n, env));
     }
 
     else if (isSigUpSample(sig, x, y)) {

@@ -70,6 +70,13 @@ const char *prim2name(CTree *(*ptr)(CTree *, CTree *))
     if (ptr == sigEnable) return "enable";
     if (ptr == sigControl) return "control";
 
+    if (ptr == sigVectorize) return "vectorize";
+    if (ptr == sigVectorAt) return "[]";
+    if (ptr == sigConcat) return "#";
+
+    if (ptr == sigUpSample) return "up";
+    if (ptr == sigDownSample) return "down";
+
     return "prim2???";
 }
 

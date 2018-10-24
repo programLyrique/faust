@@ -35,6 +35,7 @@
 #include "instructions.hh"
 #include "occurences.hh"
 #include "property.hh"
+#include "sigraterules.hh"
 
 using namespace std;
 
@@ -51,6 +52,7 @@ class InstructionsCompiler : public virtual Garbageable {
     property<string>                fTableProperty;
     Tree                            fSharingKey;
     OccMarkup                       fOccMarkup;
+    RateInferrer*                    fRates;
 
     std::map<int, std::string> fIOTATable;  // Ensure IOTA base fixed delays are computed once
 

@@ -77,7 +77,8 @@ Tree DocCompiler::annotate(Tree LS)
     recursivnessAnnotation(LS);                         // Annotate LS with recursivness information
     typeAnnotation(LS, gGlobal->gLocalCausalityCheck);  // Annotate LS with type information
     sharingAnalysis(LS);                                // annotate LS with sharing count
-    fOccMarkup.mark(LS);                                // annotate LS with occurences analysis
+    fRates = new RateInferrer(LS);                      // annotate LS with rates
+    fOccMarkup.mark(fRates, LS);                                // annotate LS with occurences analysis
 
     return LS;
 }

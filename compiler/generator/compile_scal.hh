@@ -32,6 +32,7 @@
 #include "old_occurences.hh"
 #include "property.hh"
 #include "sigtyperules.hh"
+#include "sigraterules.hh"
 
 ////////////////////////////////////////////////////////////////////////
 /**
@@ -53,6 +54,8 @@ class ScalarCompiler : public Compiler {
     Tree                    fSharingKey;
     old_OccMarkup*          fOccMarkup;
     bool                    fHasIota;
+
+    RateInferrer* fRates;
 
    public:
     ScalarCompiler(const string& name, const string& super, int numInputs, int numOutputs)

@@ -42,6 +42,7 @@
 #include "simplify.hh"
 #include "timing.hh"
 #include "xtended.hh"
+#include "sigraterules.hh"
 
 using namespace std;
 
@@ -57,7 +58,8 @@ InstructionsCompiler::InstructionsCompiler(CodeContainer* container)
       fSharingKey(NULL),
       fUIRoot(uiFolder(cons(tree(0), tree(subst("$0", ""))), gGlobal->nil)),
       fDescription(0),
-      fLoadedIota(false)
+      fLoadedIota(false),
+      fRates(0)
 {
 }
 
@@ -186,13 +188,14 @@ Tree InstructionsCompiler::prepare(Tree LS)
     endTiming("L5 typeAnnotation");
 
     sharingAnalysis(L5);  // annotate L5 with sharing count
-    fOccMarkup.mark(L5);  // annotate L5 with occurrences analysis
+    fRates = new RateInferrer(L5); // annotate L5 with rates
+    fOccMarkup.mark(fRates, L5);  // annotate L5 with occurrences analysis
     // annotationStatistics();
     endTiming("prepare");
 
     if (gGlobal->gDrawSignals) {
         ofstream dotfile(subst("$0-sig.dot", gGlobal->makeDrawPath()).c_str());
-        sigToGraph(L5, dotfile);
+        sigToGraph(L5, dotfile, fRates);
     }
     return L5;
 }
@@ -204,7 +207,8 @@ Tree InstructionsCompiler::prepare2(Tree L0)
     recursivnessAnnotation(L0);  // Annotate L0 with recursivness information
     typeAnnotation(L0, true);    // Annotate L0 with type information
     sharingAnalysis(L0);         // annotate L0 with sharing count
-    fOccMarkup.mark(L0);         // annotate L0 with occurences analysis
+    fRates = new RateInferrer(L0);
+    fOccMarkup.mark(fRates, L0);         // annotate L0 with occurences analysis
 
     endTiming("prepare2");
     return L0;

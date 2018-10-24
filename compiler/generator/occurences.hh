@@ -23,6 +23,7 @@
 #define __OCCURENCES__
 
 #include "garbageable.hh"
+#include "sigraterules.hh"
 #include "tlib.hh"
 
 class Occurences : public virtual Garbageable {
@@ -32,16 +33,21 @@ class Occurences : public virtual Garbageable {
     bool      fOutDelayOcc;    ///< True when exp has at least one occ. outside a delay
     int       fMinDelay;       ///< Minimal fix delay usage
     int       fMaxDelay;       ///< Maximal fix delay usage
+    int       fMinRate;        ///< Minimal rate usage
+    int       fMaxRate;        ///< Maximal rate usage
+
 
    public:
-    Occurences(int v, int r);
+    Occurences(int rate, int v, int r);
 
-    Occurences* incOccurences(int v, int r, int d);  ///< inc occurences in context v,r,d
+    Occurences* incOccurences(int rate, int v, int r, int d);  ///< inc occurences in context v,r,d
 
     bool hasMultiOccurences() const;     ///< true if multiple occurences or occ. in higher ctxt
     bool hasOutDelayOccurences() const;  ///< true if has occurences outside a a delay
     int  getMaxDelay() const;            ///< return the maximal delay collected
     int  getMinDelay() const;            ///< return the minimal delay collected
+    int  getMaxRate() const;             ///< return the maximal delay collected
+    int  getMinRate() const;             ///< return the minimal delay collected
 };
 
 /**
@@ -51,14 +57,15 @@ class Occurences : public virtual Garbageable {
 class OccMarkup : public virtual Garbageable {
     Tree fRootTree;  ///< occurences computed within this tree
     Tree fPropKey;   ///< key used to store occurences property
+    RateInferrer* fRates;     ///< rate information
 
-    void        incOcc(Tree env, int v, int r, int d, Tree t);  ///< inc the occurence of t in context v,r
+    void        incOcc(Tree env, int rate, int v, int r, int d, Tree t);  ///< inc the occurence of t in context v,r
     Occurences* getOcc(Tree t);                                 ///< get Occurences property of t or null
     void        setOcc(Tree t, Occurences* occ);                ///< set Occurences property of t
 
    public:
     OccMarkup() : fRootTree(NULL), fPropKey(NULL) {}
-    void        mark(Tree root);   ///< start markup of root tree with new unique key
+    void        mark(RateInferrer* R, Tree root);   ///< start markup of root tree with new unique key
     Occurences* retrieve(Tree t);  ///< occurences of subtree t within root tree
 };
 

@@ -50,9 +50,10 @@ class DocCompiler : public virtual Garbageable {
     Lateq*       fLateq;
     Description* fDescription;
 
-    Tree      fSharingKey;
-    OccMarkup fOccMarkup;
-    int       fPriority;  ///< math priority context
+    Tree            fSharingKey;
+    OccMarkup       fOccMarkup;
+    RateInferrer*   fRates;
+    int             fPriority;  ///< math priority context
 
    public:
     DocCompiler(int numInputs, int numOutputs) : fLateq(new Lateq(numInputs, numOutputs)), fDescription(0), fPriority(0)

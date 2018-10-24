@@ -32,19 +32,21 @@
 #include "signals.hh"
 #include "sigtype.hh"
 #include "sigtyperules.hh"
+#include "sigraterules.hh"
 #include "xtended.hh"
 
 using namespace std;
 
-static void   recdraw(Tree sig, set<Tree>& drawn, ofstream& fout);
+static void   recdraw(Tree sig, set<Tree>& drawn, ofstream& fout, RateInferrer* R);
+static string commontattr(Type t);
 static string nodeattr(Type t);
-static string edgeattr(Type t);
+static string edgeattr(Type t, int rate);
 static string sigLabel(Tree sig);
 
 /**
  * Draw a list of signals as a directed graph using graphviz's dot language
  */
-void sigToGraph(Tree L, ofstream& fout)
+void sigToGraph(Tree L, ofstream& fout, RateInferrer* R)
 {
     set<Tree> alreadyDrawn;
 
@@ -52,11 +54,11 @@ void sigToGraph(Tree L, ofstream& fout)
          << "    rankdir=LR; node [fontsize=10];" << endl;
     int out = 0;
     while (isList(L)) {
-        recdraw(hd(L), alreadyDrawn, fout);
+        recdraw(hd(L), alreadyDrawn, fout, R);
 
         fout << "OUTPUT_" << out << "[color=\"red2\" style=\"filled\" fillcolor=\"pink\"];" << endl;
         fout << 'S' << hd(L) << " -> "
-             << "OUTPUT_" << out++ << "[" << edgeattr(getCertifiedSigType(hd(L))) << "];" << endl;
+             << "OUTPUT_" << out++ << "[" << edgeattr(getCertifiedSigType(hd(L)), R->rate(hd(L))) << "];" << endl;
         L = tl(L);
     }
 
@@ -68,7 +70,7 @@ void sigToGraph(Tree L, ofstream& fout)
 /**
  * Draw recursively a signal
  */
-static void recdraw(Tree sig, set<Tree>& drawn, ofstream& fout)
+static void recdraw(Tree sig, set<Tree>& drawn, ofstream& fout, RateInferrer* R)
 {
     // cerr << ++gGlobal->TABBER << "ENTER REC DRAW OF " << sig << "$" << *sig << endl;
     vector<Tree> subsig;
@@ -78,7 +80,7 @@ static void recdraw(Tree sig, set<Tree>& drawn, ofstream& fout)
         drawn.insert(sig);
         if (isList(sig)) {
             do {
-                recdraw(hd(sig), drawn, fout);
+                recdraw(hd(sig), drawn, fout, R);
                 sig = tl(sig);
             } while (isList(sig));
         } else {
@@ -89,10 +91,12 @@ static void recdraw(Tree sig, set<Tree>& drawn, ofstream& fout)
             // draw the subsignals
             n = getSubSignals(sig, subsig);
             if (n > 0) {
+                Tree id, body;
+
                 if (n == 1 && isList(subsig[0])) {
-                    Tree id, body;
                     faustassert(isRec(sig, id, body));
                     if (!isRec(sig, id, body)) {
+                        // ??
                     }
                     // special recursion case, recreate a vector of subsignals instead of the
                     // list provided by getSubSignal
@@ -107,9 +111,16 @@ static void recdraw(Tree sig, set<Tree>& drawn, ofstream& fout)
                 }
 
                 for (int i = 0; i < n; i++) {
-                    recdraw(subsig[i], drawn, fout);
-                    fout << 'S' << subsig[i] << " -> " << 'S' << sig << "[" << edgeattr(getCertifiedSigType(subsig[i]))
-                         << "];" << endl;
+                    recdraw(subsig[i], drawn, fout, R);
+
+                    if (isRec(subsig[i], id, body)) {
+                        // special case when source is a recursive group, we don't want a rate
+                        fout << 'S' << subsig[i] << " -> " << 'S' << sig << "[style=dashed];" << endl;
+                    } else {
+                        // special case when source is a recursive group, we don't want a rate
+                        fout << 'S' << subsig[i] << " -> " << 'S' << sig << "["
+                             << edgeattr(getCertifiedSigType(subsig[i]), R->rate(subsig[i])) << "];" << endl;
+                    }
                 }
             }
         }
@@ -118,9 +129,9 @@ static void recdraw(Tree sig, set<Tree>& drawn, ofstream& fout)
 }
 
 /**
- * Convert a signal type into edge attributes
+ * Convert a signal type into attributes common to edges and nodes
  */
-static string edgeattr(Type t)
+static string commonattr(Type t)
 {
     string s;
 
@@ -135,6 +146,28 @@ static string edgeattr(Type t)
     if (t->vectorability() == kVect && t->variability() == kSamp) {
         s += " style=\"bold\"";
     }
+
+    return s;
+}
+
+/**
+ * Convert a signal type into edge attributes
+ */
+static string edgeattr(Type t, int rate)
+{
+    string s;
+    vector<int> d;
+    Type        b = t->dimensions(d);
+
+    s = commonattr(t);
+
+    // add rate information as label at the head of the arrow
+    s += " label=\"";
+    for (int i = 0; i < d.size(); i++) {
+        s += subst("[$0]", T(d[i]));
+    }
+    s += subst("x$0\" fontsize=8", T(rate));
+    
     return s;
 }
 
@@ -143,7 +176,7 @@ static string edgeattr(Type t)
  */
 static string nodeattr(Type t)
 {
-    string s = edgeattr(t);
+    string s = commonattr(t);
 
     // variability
     if (t->variability() == kKonst) {

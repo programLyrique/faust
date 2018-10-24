@@ -45,6 +45,7 @@
 #include "sigprint.hh"
 #include "sigtype.hh"
 #include "sigtyperules.hh"
+#include "sigraterules.hh"
 #include "simplify.hh"
 #include "timing.hh"
 #include "xtended.hh"
@@ -133,6 +134,10 @@ Tree ScalarCompiler::prepare(Tree LS)
     typeAnnotation(L3, true);  // Annotate L3 with type information
     endTiming("typeAnnotation");
 
+    startTiming("Rate Inference");
+    fRates = new RateInferrer(L3);          // annotate L3 with rates
+    endTiming("Rate Inference");
+
     sharingAnalysis(L3);  // annotate L3 with sharing count
 
     if (fOccMarkup != 0) {
@@ -155,10 +160,11 @@ Tree ScalarCompiler::prepare(Tree LS)
 Tree ScalarCompiler::prepare2(Tree L0)
 {
     startTiming("ScalarCompiler::prepare2");
-    
+
     recursivnessAnnotation(L0);  // Annotate L0 with recursivness information
     typeAnnotation(L0, true);    // Annotate L0 with type information
     sharingAnalysis(L0);         // annotate L0 with sharing count
+    fRates = new RateInferrer(L0);          // annotate L0 with rates
 
     if (fOccMarkup != 0) {
         delete fOccMarkup;
@@ -311,7 +317,7 @@ string ScalarCompiler::CS(Tree sig)
 {
     // contextor contextRecursivness;
     string code;
-    
+
     if (!getCompiledExpression(sig, code)) {
         // not compiled yet
         /*
@@ -665,17 +671,17 @@ void ScalarCompiler::getTypedNames(Type t, const string& prefix, string& ctype, 
 string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
 {
     string code;
-   
+
     // check reentrance
     if (getCompiledExpression(sig, code)) {
         return code;
     }
-    
+
     string vname, ctype;
     int             sharing = getSharingCount(sig);
     old_Occurences* o       = fOccMarkup->retrieve(sig);
     faustassert(o);
-   
+
 
     // check for expression occuring in delays
     if (o->getMaxDelay() > 0) {
@@ -705,12 +711,12 @@ string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
 string ScalarCompiler::forceCacheCode(Tree sig, const string& exp)
 {
     string code;
-    
+
     // check reentrance
     if (getCompiledExpression(sig, code)) {
         return code;
     }
-    
+
     string vname, ctype;
     old_Occurences* o = fOccMarkup->retrieve(sig);
     faustassert(o);
@@ -729,7 +735,7 @@ string ScalarCompiler::generateVariableStore(Tree sig, const string& exp)
 {
     string vname, ctype;
     Type   t = getCertifiedSigType(sig);
-   
+
     switch (t->variability()) {
         case kKonst:
             getTypedNames(t, "Const", ctype, vname);
@@ -1323,23 +1329,23 @@ int ScalarCompiler::pow2limit(int x)
 
 /*****************************************************************************
  N-SAMPLE FIXED DELAY : sig = exp@delay
- 
+
  case 1-sample max delay :
  Y(t-0)	Y(t-1)
  Temp	Var                     gLessTempSwitch = false
  V[0]	V[1]                    gLessTempSwitch = true
- 
+
  case max delay < gMaxCopyDelay :
  Y(t-0)	Y(t-1)	Y(t-2)  ...
  Temp	V[0]	V[1]	...     gLessTempSwitch = false
  V[0]	V[1]	V[2]	...     gLessTempSwitch = true
- 
+
  case max delay >= gMaxCopyDelay :
  Y(t-0)	Y(t-1)	Y(t-2)  ...
  Temp	V[0]	V[1]	...
  V[0]	V[1]	V[2]	...
- 
- 
+
+
  *****************************************************************************/
 
 /**

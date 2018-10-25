@@ -119,7 +119,10 @@ bool isSigSelect2(Tree t, Tree& selector, Tree& s1, Tree& s2);
 bool isSigSelect3(Tree t, Tree& selector, Tree& s1, Tree& s2, Tree& s3);
 
 // multirate
-Tree sigVectorize (Tree n, Tree s);
+// Faust2 changes the order in which
+// the input arguments are passed to tree,
+// so we just change the order when building the signal
+Tree sigVectorize (Tree s, Tree n);
 bool isSigVectorize (Tree a, Tree& n, Tree& s);
 
 Tree sigSerialize (Tree s);
@@ -131,10 +134,10 @@ bool isSigConcat (Tree a, Tree& s1, Tree& s2);
 Tree sigVectorAt (Tree s1, Tree s2);
 bool isSigVectorAt (Tree a, Tree& s1, Tree& s2);
 
-Tree sigUpSample (Tree s, Tree n);
+Tree sigUpSample (Tree n, Tree s);
 bool isSigUpSample (Tree a, Tree& s, Tree& n);
 
-Tree sigDownSample (Tree s, Tree n);
+Tree sigDownSample (Tree n, Tree s);
 bool isSigDownSample (Tree a, Tree& s, Tree& n);
 
 // arithmetical operations

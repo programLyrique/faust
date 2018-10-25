@@ -159,9 +159,14 @@ Tree InstructionsCompiler::prepare(Tree LS)
     Tree L2 = SP.mapself(L1);
     endTiming("Cast and Promotion");
 
+
+
+
+    Tree L2b = L2;
+    /*
     typeAnnotation(L2, gGlobal->gLocalCausalityCheck);  // Annotate L1 with type information
     SignalInsert SI(3);
-    Tree         L2b = SI.mapself(L2);
+    Tree         L2b = SI.mapself(L2);*/
 
     startTiming("simplification");
     Tree L3 = simplify(L2b);  // simplify by executing every computable operation

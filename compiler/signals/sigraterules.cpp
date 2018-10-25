@@ -550,9 +550,10 @@ static int checkSignalDenotesSize(Tree w, Tree sig)
             return int(i.lo);
         }
     }
-    cerr << "ERROR in expression : " << ppsig(sig) << endl;
-    cerr << *w << " is not a positive constant integer" << endl;
-    exit(1);
+    stringstream error;
+    error << "ERROR in expression : " << ppsig(sig) << endl;
+    error << *w << " is not a positive constant integer" << endl;
+    throw faustexception(error.str());
 }
 
 /**
@@ -790,8 +791,9 @@ int RateInferrer::computeRate(Tree sig)
         int rx = rate(x);
         int ry = vt->size();
         if ((rx % ry) != 0) {
-            std::cerr << "ERROR : non integer rate " << rx << '/' << ry << " for signal " << ppsig(sig) << std::endl;
-            exit(1);
+            stringstream error;
+            error << "ERROR : non integer rate " << rx << '/' << ry << " for signal " << ppsig(sig) << std::endl;
+            throw faustexception(error.str());
         }
         return rx / ry;
 
@@ -808,9 +810,10 @@ int RateInferrer::computeRate(Tree sig)
         int i = checkSignalDenotesSize(n, sig);
         int r = rate(x);
         if ((r % i != 0)) {
-            std::cerr << "DOWNSAMPLING ERROR : non integer rate " << r << '/' << i << " for signal " << ppsig(sig)
+            stringstream error;
+            error << "DOWNSAMPLING ERROR : non integer rate " << r << '/' << i << " for signal " << ppsig(sig)
                       << std::endl;
-            exit(1);
+            throw faustexception(error.str());
         }
         faustassert(r % i == 0);
         return r / i;

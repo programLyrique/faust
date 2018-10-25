@@ -61,7 +61,7 @@ static Type infereWaveformType(Tree lv, Tree env);
 
 static interval arithmetic(int opcode, const interval& x, const interval& y);
 
-static Type infereVectorizeType(Tree sig, Type T, Type Tsize);
+static Type infereVectorizeType(Tree sig, Type Tsize, Type T);
 static Type infereSerializeType(Tree sig, Type Tvec);
 static Type infereConcatType(Type Tvec1, Type Tvec2);
 static Type infereVectorAtType(Type Tvec, Type Tidx);
@@ -503,8 +503,8 @@ static Type infereSigType(Tree sig, Tree env)
         return T(hd(sig), env) * T(tl(sig), env);
     }
 
-    else if (isSigVectorize(sig, s, n)) {
-        return infereVectorizeType(sig, T(s, env), T(n, env));
+    else if (isSigVectorize(sig, n, s)) {
+        return infereVectorizeType(sig, T(n, env), T(s, env));
     } else if (isSigSerialize(sig, x)) {
         return infereSerializeType(sig, T(x, env));
     } else if (isSigConcat(sig, x, y)) {
@@ -808,7 +808,7 @@ static interval arithmetic(int opcode, const interval& x, const interval& y)
     return interval();
 }
 
-static Type infereVectorizeType(Tree sig, Type T, Type Tsize)
+static Type infereVectorizeType(Tree sig, Type Tsize, Type T)
 {
     SimpleType* st = isSimpleType(Tsize);
     if (st && st->nature() == kInt) {

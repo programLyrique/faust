@@ -565,8 +565,8 @@ static void doInferreRate(Tree sig, int* rate, Tree& E)
     Tree w, x, rsig, id, body;
     int  i, in;
 
-    if (isSigVectorize(sig, w, x)) {
-        // -- rate(vectorize(n,x)) = rate(x)/n
+    if (isSigVectorize(sig, x, w)) {
+        // -- rate(vectorize(x,n)) = rate(x)/n
 
         VectorType* vt = isVectorType(getCertifiedSigType(sig));
         faustassert(vt);
@@ -785,7 +785,7 @@ int RateInferrer::computeRate(Tree sig)
         TRACE(cerr << "ERROR: Recursive signal " << *sig << " should have a rate" << endl);
         return 0;
 
-    } else if (isSigVectorize(sig, n, x)) {
+    } else if (isSigVectorize(sig, x, n)) {
         VectorType* vt = isVectorType(getCertifiedSigType(sig));
         faustassert(vt);
         int rx = rate(x);

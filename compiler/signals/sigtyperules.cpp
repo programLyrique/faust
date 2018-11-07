@@ -503,7 +503,7 @@ static Type infereSigType(Tree sig, Tree env)
         return T(hd(sig), env) * T(tl(sig), env);
     }
 
-    else if (isSigVectorize(sig, n, s)) {
+    else if (isSigVectorize(sig, s, n)) {
         return infereVectorizeType(sig, T(n, env), T(s, env));
     } else if (isSigSerialize(sig, x)) {
         return infereSerializeType(sig, T(x, env));

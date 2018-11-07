@@ -226,7 +226,7 @@ bool isSigSelect3(Tree t, Tree& selector, Tree& s1, Tree& s2, Tree& s3)
 
 Tree sigVectorize(Tree s, Tree n)
 {
-    return tree(gGlobal->SIGVECTORIZE, n, s);
+    return tree(gGlobal->SIGVECTORIZE, s, n);
 }
 bool isSigVectorize(Tree a, Tree& s, Tree& n)
 {
@@ -253,25 +253,25 @@ bool isSigConcat(Tree a, Tree& s1, Tree& s2)
 
 Tree sigVectorAt(Tree s1, Tree s2)
 {
-    return tree(gGlobal->SIGVECTORAT, s2, s1);
+    return tree(gGlobal->SIGVECTORAT, s1, s2);
 }
 bool isSigVectorAt(Tree a, Tree& s1, Tree& s2)
 {
     return isTree(a, gGlobal->SIGVECTORAT, s1, s2);
 }
 
-Tree sigUpSample(Tree n, Tree s)
+Tree sigUpSample(Tree s, Tree n)
 {
-    return tree(gGlobal->SIGUPSAMPLE, n, s);
+    return tree(gGlobal->SIGUPSAMPLE, s, n);
 }
 bool isSigUpSample(Tree a, Tree& s, Tree& n)
 {
     return isTree(a, gGlobal->SIGUPSAMPLE, s, n);
 }
 
-Tree sigDownSample(Tree n, Tree s)
+Tree sigDownSample(Tree s, Tree n)
 {
-    return tree(gGlobal->SIGDOWNSAMPLE, n, s);
+    return tree(gGlobal->SIGDOWNSAMPLE, s, n);
 }
 bool isSigDownSample(Tree a, Tree& s, Tree& n)
 {

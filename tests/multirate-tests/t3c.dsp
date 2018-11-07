@@ -1,3 +1,2 @@
 // Faust Template
-process = \(x,y).( (vectorize(10,x) : serialize : +(y)), y );
-
+process = \(x,y).( (vectorize(x,10) : serialize : +(y)), y );

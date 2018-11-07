@@ -19,8 +19,8 @@ yyprocess = tutu + toto : serialize;
 
 zzprocess = toto : +~_ ;
 
-wwprocess = down(8,_) : log : up(8,_);
+wwprocess = down(8) : log : up(8);
 
-qqprocess = up(8,_) : smooth(0.9) : down(8,_) with { smooth(c) = *(1-c) : +~*(c); };
-process = up(2,_) : mem ;
+qqprocess = up(8) : smooth(0.9) : down(8) with { smooth(c) = *(1-c) : +~*(c); };
+process = up(2) : mem ;
 xxxprocess = mem;

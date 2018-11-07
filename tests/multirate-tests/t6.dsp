@@ -1,2 +1,1 @@
-process = vectorize(10,_), vectorize(10,_) : + : [3];
-
+process = vectorize(10), vectorize(_,10) : + : [3];

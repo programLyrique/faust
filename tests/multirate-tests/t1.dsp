@@ -1,3 +1,2 @@
 // Faust Template
-process = vectorize(10,_) : serialize;
-
+process = vectorize(_,10) : serialize;

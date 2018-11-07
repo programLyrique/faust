@@ -123,7 +123,7 @@ bool isSigSelect3(Tree t, Tree& selector, Tree& s1, Tree& s2, Tree& s3);
 // the input arguments are passed to tree,
 // so we just change the order when building the signal
 Tree sigVectorize (Tree s, Tree n);
-bool isSigVectorize (Tree a, Tree& n, Tree& s);
+bool isSigVectorize (Tree a, Tree& s, Tree& n);
 
 Tree sigSerialize (Tree s);
 bool isSigSerialize (Tree a, Tree& s);

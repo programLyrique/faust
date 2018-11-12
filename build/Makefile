@@ -3483,6 +3483,33 @@ Users/pierre/Documents/faust/compiler/transform/treeTransform.cpp.s:
 	$(MAKE) -f CMakeFiles/faust.dir/build.make CMakeFiles/faust.dir/Users/pierre/Documents/faust/compiler/transform/treeTransform.cpp.s
 .PHONY : Users/pierre/Documents/faust/compiler/transform/treeTransform.cpp.s
 
+Users/pierre/Documents/faust/compiler/utils/exepath.o: Users/pierre/Documents/faust/compiler/utils/exepath.cpp.o
+
+.PHONY : Users/pierre/Documents/faust/compiler/utils/exepath.o
+
+# target to build an object file
+Users/pierre/Documents/faust/compiler/utils/exepath.cpp.o:
+	$(MAKE) -f CMakeFiles/faust.dir/build.make CMakeFiles/faust.dir/Users/pierre/Documents/faust/compiler/utils/exepath.cpp.o
+.PHONY : Users/pierre/Documents/faust/compiler/utils/exepath.cpp.o
+
+Users/pierre/Documents/faust/compiler/utils/exepath.i: Users/pierre/Documents/faust/compiler/utils/exepath.cpp.i
+
+.PHONY : Users/pierre/Documents/faust/compiler/utils/exepath.i
+
+# target to preprocess a source file
+Users/pierre/Documents/faust/compiler/utils/exepath.cpp.i:
+	$(MAKE) -f CMakeFiles/faust.dir/build.make CMakeFiles/faust.dir/Users/pierre/Documents/faust/compiler/utils/exepath.cpp.i
+.PHONY : Users/pierre/Documents/faust/compiler/utils/exepath.cpp.i
+
+Users/pierre/Documents/faust/compiler/utils/exepath.s: Users/pierre/Documents/faust/compiler/utils/exepath.cpp.s
+
+.PHONY : Users/pierre/Documents/faust/compiler/utils/exepath.s
+
+# target to generate assembly for a file
+Users/pierre/Documents/faust/compiler/utils/exepath.cpp.s:
+	$(MAKE) -f CMakeFiles/faust.dir/build.make CMakeFiles/faust.dir/Users/pierre/Documents/faust/compiler/utils/exepath.cpp.s
+.PHONY : Users/pierre/Documents/faust/compiler/utils/exepath.cpp.s
+
 Users/pierre/Documents/faust/compiler/utils/files.o: Users/pierre/Documents/faust/compiler/utils/files.cpp.o
 
 .PHONY : Users/pierre/Documents/faust/compiler/utils/files.o
@@ -3916,6 +3943,9 @@ help:
 	@echo "... Users/pierre/Documents/faust/compiler/transform/treeTransform.o"
 	@echo "... Users/pierre/Documents/faust/compiler/transform/treeTransform.i"
 	@echo "... Users/pierre/Documents/faust/compiler/transform/treeTransform.s"
+	@echo "... Users/pierre/Documents/faust/compiler/utils/exepath.o"
+	@echo "... Users/pierre/Documents/faust/compiler/utils/exepath.i"
+	@echo "... Users/pierre/Documents/faust/compiler/utils/exepath.s"
 	@echo "... Users/pierre/Documents/faust/compiler/utils/files.o"
 	@echo "... Users/pierre/Documents/faust/compiler/utils/files.i"
 	@echo "... Users/pierre/Documents/faust/compiler/utils/files.s"

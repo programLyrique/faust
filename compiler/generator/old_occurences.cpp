@@ -46,16 +46,17 @@ static int xVariability(int v, int r)
 //	Occurences methods
 //-------------------------------------------------
 
-old_Occurences::old_Occurences(int v, int r, Tree xc) : fXVariability(xVariability(v, r))
+old_Occurences::old_Occurences(int rate, int v, int r, Tree xc) : fXVariability(xVariability(v, r))
 {
     for (int i = 0; i < 4; i++) fOccurences[i] = 0;
     fMultiOcc      = false;
     fMaxDelay      = 0;
     fOutDelayOcc   = false;
     fExecCondition = xc;
+    fMaxRate = fMinRate = rate;
 }
 
-old_Occurences* old_Occurences::incOccurences(int v, int r, int d, Tree xc)
+old_Occurences* old_Occurences::incOccurences(int rate, int v, int r, int d, Tree xc)
 {
     int ctxt = xVariability(v, r);
     // assert (ctxt >= fXVariability);
@@ -74,6 +75,14 @@ old_Occurences* old_Occurences::incOccurences(int v, int r, int d, Tree xc)
     if (fExecCondition != xc) {
         fMultiOcc = true;
     }
+
+    // update min and max rate usage
+    if (rate > fMaxRate) {
+        fMaxRate = rate;
+    } else if (rate < fMinRate) {
+        fMinRate = rate;
+    }
+
     return this;
 }
 
@@ -97,25 +106,36 @@ Tree old_Occurences::getExecCondition() const
     return fExecCondition;
 }
 
+int old_Occurences::getMaxRate() const
+{
+    return fMaxRate;
+}
+
+int old_Occurences::getMinRate() const
+{
+    return fMinRate;
+}
+
 //--------------------------------------------------
 //	Mark and retrieve occurences of subtrees of root
 //--------------------------------------------------
 
-void old_OccMarkup::mark(Tree root)
+void old_OccMarkup::mark(RateInferrer* R, Tree root)
 {
     fRootTree = root;
     fPropKey  = tree(unique("OCCURRENCES"));
+    fRates= R;
 
     if (isList(root)) {
         while (isList(root)) {
             // incOcc(kSamp, 1, hd(root));
-            incOcc(gGlobal->nil, kSamp, 0, 0, gGlobal->nil, hd(root));
+            incOcc(gGlobal->nil, fRates->rate(hd(root)), kSamp, 0, 0, gGlobal->nil, hd(root));
             root = tl(root);
         }
         // cerr << "END OF LIST IS " << *root << endl;
     } else {
         // incOcc(kSamp, 1, root);
-        incOcc(gGlobal->nil, kSamp, 0, 0, gGlobal->nil, root);
+        incOcc(gGlobal->nil, fRates->rate(root), kSamp, 0, 0, gGlobal->nil, root);
     }
 }
 
@@ -134,7 +154,7 @@ old_Occurences* old_OccMarkup::retrieve(Tree t)
 // xc : exec condition expression
 //------------------------------------------------------------------------------
 
-void old_OccMarkup::incOcc(Tree env, int v, int r, int d, Tree xc, Tree t)
+void old_OccMarkup::incOcc(Tree env, int rate, int v, int r, int d, Tree xc, Tree t)
 {
     // Check if we have already visited this tree
     old_Occurences* occ = getOcc(t);
@@ -144,8 +164,10 @@ void old_OccMarkup::incOcc(Tree env, int v, int r, int d, Tree xc, Tree t)
         Type ty = getCertifiedSigType(t);
         int  v0 = ty->variability();
         int  r0 = getRecursivness(t);
+        int  rt = fRates->rate(t);
         Tree c0 = fConditions[t];
-        occ     = new old_Occurences(v0, r0, c0);
+
+        occ     = new old_Occurences(rate, v0, r0, c0);
         setOcc(t, occ);
 
         // We mark the subtrees of t
@@ -154,30 +176,30 @@ void old_OccMarkup::incOcc(Tree env, int v, int r, int d, Tree xc, Tree t)
             Type g2 = getCertifiedSigType(y);
             int  d2 = checkDelayInterval(g2);
             faustassert(d2 >= 0);
-            incOcc(env, v0, r0, d2, c0, x);
-            incOcc(env, v0, r0, 0, c0, y);
+            incOcc(env, rt, v0, r0, d2, c0, x);
+            incOcc(env, rt, v0, r0, 0, c0, y);
         } else if (isSigPrefix(t, y, x)) {
-            incOcc(env, v0, r0, 1, c0, x);
-            incOcc(env, v0, r0, 0, c0, y);
+            incOcc(env, rt, v0, r0, 1, c0, x);
+            incOcc(env, rt, v0, r0, 0, c0, y);
         } else if (isSigSelect3(t, c, y, x, z)) {
             // make a special case for select3 implemented with real if
             // because the c expression will be used twice in the C++
             // translation
-            incOcc(env, v0, r0, 0, c0, c);
-            incOcc(env, v0, r0, 0, c0, c);
-            incOcc(env, v0, r0, 0, c0, x);
-            incOcc(env, v0, r0, 0, c0, y);
-            incOcc(env, v0, r0, 0, c0, z);
+            incOcc(env, rt, v0, r0, 0, c0, c);
+            incOcc(env, rt, v0, r0, 0, c0, c);
+            incOcc(env, rt, v0, r0, 0, c0, x);
+            incOcc(env, rt, v0, r0, 0, c0, y);
+            incOcc(env, rt, v0, r0, 0, c0, z);
         } else {
             vector<Tree> br;
             int          n = getSubSignals(t, br);
             if (n > 0 && !isSigGen(t)) {
-                for (int i = 0; i < n; i++) incOcc(env, v0, r0, 0, c0, br[i]);
+                for (int i = 0; i < n; i++) incOcc(env, rate, v0, r0, 0, c0, br[i]);
             }
         }
     }
 
-    occ->incOccurences(v, r, d, xc);
+    occ->incOccurences(rate, v, r, d, xc);
 }
 
 old_Occurences* old_OccMarkup::getOcc(Tree t)

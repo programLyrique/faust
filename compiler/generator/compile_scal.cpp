@@ -134,17 +134,17 @@ Tree ScalarCompiler::prepare(Tree LS)
     typeAnnotation(L3, true);  // Annotate L3 with type information
     endTiming("typeAnnotation");
 
+    sharingAnalysis(L3);  // annotate L3 with sharing count
+
     startTiming("Rate Inference");
     fRates = new RateInferrer(L3);          // annotate L3 with rates
     endTiming("Rate Inference");
-
-    sharingAnalysis(L3);  // annotate L3 with sharing count
 
     if (fOccMarkup != 0) {
         delete fOccMarkup;
     }
     fOccMarkup = new old_OccMarkup(fConditionProperty);
-    fOccMarkup->mark(L3);  // annotate L3 with occurences analysis
+    fOccMarkup->mark(fRates, L3);  // annotate L3 with occurences analysis
 
     endTiming("ScalarCompiler::prepare");
 
@@ -170,7 +170,7 @@ Tree ScalarCompiler::prepare2(Tree L0)
         delete fOccMarkup;
     }
     fOccMarkup = new old_OccMarkup();
-    fOccMarkup->mark(L0);  // annotate L0 with occurences analysis
+    fOccMarkup->mark(fRates, L0);  // annotate L0 with occurences analysis
 
     endTiming("ScalarCompiler::prepare2");
     return L0;

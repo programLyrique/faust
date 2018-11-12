@@ -59,7 +59,7 @@ class ScalarCompiler : public Compiler {
 
    public:
     ScalarCompiler(const string& name, const string& super, int numInputs, int numOutputs)
-        : Compiler(name, super, numInputs, numOutputs, false), fOccMarkup(0), fHasIota(false)
+        : Compiler(name, super, numInputs, numOutputs, false), fOccMarkup(0), fHasIota(false), fRates(0)
     {
     }
 

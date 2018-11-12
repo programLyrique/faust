@@ -51,6 +51,7 @@ using namespace std;
 
 struct Loop {
     const bool   fIsRecursive;    ///< recursive loops can't be SIMDed
+    int          fCommonRate;     ///< common rate
     Tree         fRecSymbolSet;   ///< recursive loops define a set of recursive symbol
     Loop* const  fEnclosingLoop;  ///< Loop from which this one originated
     const string fSize;           ///< number of iterations of the loop
@@ -87,6 +88,8 @@ struct Loop {
     void absorb(Loop* l);  ///< absorb a loop inside this one
     // new method
     void concat(Loop* l);
+
+    void setCommonRate(int r);  ///< set the least common multiple rate used in the loop
 };
 
 #endif

@@ -42,6 +42,7 @@
 
 class ScalarCompiler : public Compiler {
    protected:
+    set<string>                     fDeclaredTypes;  // Used to avoid duplicated type declaration
     property<string>                fCompileProperty;
     property<string>                fSoundfileVariableProperty;  // variable associated to a soundfile
     property<string>                fVectorProperty;
@@ -73,6 +74,7 @@ class ScalarCompiler : public Compiler {
     virtual string generateCode(Tree sig);
     virtual string generateCacheCode(Tree sig, const string& exp);
     virtual string forceCacheCode(Tree sig, const string& exp);
+    virtual string generateSeparateCode(Tree sig, const string& exp);
     virtual string generateVariableStore(Tree sig, const string& exp);
 
     string getFreshID(const string& prefix);
@@ -91,6 +93,10 @@ class ScalarCompiler : public Compiler {
     void setSharingCount(Tree t, int count);
     void sharingAnalysis(Tree t);
     void sharingAnnotation(int vctxt, Tree t);
+
+    // generation du code
+    string declareCType(Tree sig);  ///< Add C type declaration to class, return ctype name
+    string declareCType(Type t);    ///< Add C type declaration to class, return ctype name
 
     void   conditionAnnotation(Tree l);
     void   conditionAnnotation(Tree t, Tree nc);
@@ -150,7 +156,7 @@ class ScalarCompiler : public Compiler {
 
     virtual string generateDelayVec(Tree sig, const string& exp, const string& ctype, const string& vname, int mxd);
     string generateDelayVecNoTemp(Tree sig, const string& exp, const string& ctype, const string& vname, int mxd);
-    virtual void generateDelayLine(const string& ctype, const string& vname, int mxd, const string& exp,
+    virtual void generateDelayLine(Tree sig, const string& ctype, const string& vname, int mxd, const string& exp,
                                    const string& ccs);
 
     void getTypedNames(::Type t, const string& prefix, string& ctype, string& vname);
@@ -158,6 +164,21 @@ class ScalarCompiler : public Compiler {
     int  pow2limit(int x);
 
     void declareWaveform(Tree sig, string& vname, int& size);
+
+    string generateDownSample(Tree sig, Tree w, Tree x);
+    string generateUpSample(Tree sig, Tree w, Tree x);
+
+    string generateVectorize(Tree sig, Tree x, Tree y);
+    string generateSerialize(Tree sig, Tree x);
+
+    string generateConcat(Tree sig, Tree x, Tree y);
+    string generateVectorAt(Tree sig, Tree x, Tree y);
+
+    void pointwise(const string& op, int idx, const string& dst, const vector<int>& d3, const string& src1,
+                   const vector<int>& d1, const string& src2, const vector<int>& d2);
+    void unarywise(xtended* foo, Type t, int idx, const string& dst, const vector<int>& D, const string& src1);
+    void binarywise(xtended* foo, Type t1, Type t2, int idx, const string& dst, const vector<int>& d3,
+                    const string& src1, const vector<int>& d1, const string& src2, const vector<int>& d2);
 
     virtual string generateEnable(Tree sig, Tree x, Tree y);
 

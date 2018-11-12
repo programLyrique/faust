@@ -340,6 +340,8 @@ void ScalarCompiler::compileMultiSignal(Tree L)
     // contextor recursivness(0);
     L = prepare(L);  // optimize, share and annotate expression
 
+    fClass->setCommonRate(fRates->commonRate());
+
     for (int i = 0; i < fClass->inputs(); i++) {
         fClass->addZone3(subst("$1* input$0 = input[$0];", T(i), xfloat()));
         if (gGlobal->gInPlace) {
@@ -350,10 +352,16 @@ void ScalarCompiler::compileMultiSignal(Tree L)
         fClass->addZone3(subst("$1* output$0 = output[$0];", T(i), xfloat()));
     }
 
+
     for (int i = 0; isList(L); L = tl(L), i++) {
         Tree sig = hd(L);
-        fClass->addExecCode(
-            Statement("", subst("output$0[i] = $2$1;", T(i), generateCacheCode(sig, CS(sig)), xcast())));
+        fClass->setOutputRate(i, fRates->rate(sig));
+        int p = fRates->periodicity(sig);
+        if (p == 1) {
+            fClass->addExecCode(Statement("", subst("output$0[i] = $2$1;", T(i), CS(sig), xcast())));
+        } else {
+            fClass->addExecCode(Statement("",subst("if ((i%$3)==0) { output$0[i/$3] = $2$1; }", T(i), CS(sig), xcast(), T(p))));
+        }
     }
 
     generateMetaData();
@@ -505,17 +513,17 @@ string ScalarCompiler::generateCode(Tree sig)
     }
 
     else if (isSigUpSample(sig, x, y)) {
-        return subst("upsample($0,$1)", CS(x), CS(y)); ;
+        return generateUpSample(sig, x, y);
     } else if (isSigDownSample(sig, x, y)) {
-        return subst("downsample($0,$1)", CS(x), CS(y)); ;
+        return generateDownSample(sig, x, y);
     } else if (isSigVectorize(sig, x, y)) {
-        return subst("vectorize($0,$1)", CS(x), CS(y)); ;
+        return generateVectorize(sig, x, y);
     } else if (isSigSerialize(sig, x)) {
-        return subst("serialize($0)", CS(x)); ;
+        return generateSerialize(sig, x);
     } else if (isSigConcat(sig, x, y)) {
-        return subst("concat($0,$1)", CS(x), CS(y)); ;
+        return generateConcat(sig, x, y);
     } else if (isSigVectorAt(sig, x, y)) {
-        return subst("vectorAt($0,$1)", CS(x), CS(y)); ;
+        return generateVectorAt(sig, x, y);
     }
     /* we should not have any control at this stage*/
     else {
@@ -579,12 +587,24 @@ string ScalarCompiler::generateFVar(Tree sig, const string& file, const string& 
 
 string ScalarCompiler::generateInput(Tree sig, const string& idx)
 {
-    if (gGlobal->gInPlace) {
-        // inputs must be cached for in-place transformations
-        return forceCacheCode(sig, subst("$1input$0[i]", idx, icast()));
-    } else {
-        return generateCacheCode(sig, subst("$1input$0[i]", idx, icast()));
+    int p = fRates->periodicity(sig);
+    if(p == 1) {
+        if (gGlobal->gInPlace) {
+            // inputs must be cached for in-place transformations
+            return forceCacheCode(sig, subst("$1input$0[i]", idx, icast()));
+        } else {
+            return generateCacheCode(sig, subst("$1input$0[i]", idx, icast()));
+        }
     }
+    else {
+        if (gGlobal->gInPlace) {
+            // inputs must be cached for in-place transformations
+            return generateVariableStore(sig, subst("$1input$0[i/$2]", idx, icast(), T(p)));
+        } else {
+            return generateCacheCode(sig, subst("$1input$0[i/$2]", idx, icast(), T(p)));
+        }
+    }
+
 }
 
 string ScalarCompiler::generateOutput(Tree sig, const string& idx, const string& arg)
@@ -598,37 +618,131 @@ string ScalarCompiler::generateOutput(Tree sig, const string& idx, const string&
  BINARY OPERATION
  *****************************************************************************/
 
+ // dst, d3, src1, d1, src2, d2
+void ScalarCompiler::pointwise(const string& op, int idx, const string& dst, const vector<int>& d3, const string& src1,
+                               const vector<int>& d1, const string& src2, const vector<int>& d2)
+{
+    if (idx == 0) {
+        fClass->addExecCode(Statement("", subst("$0 = $1 $2 $3;", dst, src1, op, src2)));
+    } else {
+        fClass->addExecCode(Statement("", subst("for (int k$0=0; k$0<$1; k$0++) {", T(idx), T(d3[idx - 1]))));
+        if (idx > d1.size()) {
+            pointwise(op, idx - 1, subst("$0.data[k$1]", dst, T(idx)), d3, src1, d1,
+                      subst("$0.data[k$1]", src2, T(idx)), d2);
+        } else if (idx > d2.size()) {
+            pointwise(op, idx - 1, subst("$0.data[k$1]", dst, T(idx)), d3, subst("$0.data[k$1]", src1, T(idx)), d1,
+                      src2, d2);
+        } else {
+            pointwise(op, idx - 1, subst("$0.data[k$1]", dst, T(idx)), d3, subst("$0.data[k$1]", src1, T(idx)), d1,
+                      subst("$0.data[k$1]", src2, T(idx)), d2);
+        }
+        fClass->addExecCode(Statement("", "}"));
+    }
+}
+
+// dst, d3, src1, d1, src2, d2
+void ScalarCompiler::unarywise(xtended* foo, Type t, int idx, const string& dst, const vector<int>& D,
+                               const string& src1)
+{
+    if (idx == 0) {
+        vector<string> args;
+        vector<Type>   types;
+        args.push_back(src1);
+        types.push_back(t);
+
+        string exp = foo->old_generateCode(fClass, args, types);
+        fClass->addExecCode(Statement("", subst("$0 = $1;", dst, exp)));
+    } else {
+        fClass->addExecCode(Statement("", subst("for (int k$0=0; k$0<$1; k$0++) {", T(idx), T(D[idx - 1]))));
+        unarywise(foo, t, idx - 1, subst("$0.data[k$1]", dst, T(idx)), D, subst("$0.data[k$1]", src1, T(idx)));
+        fClass->addExecCode(Statement("","}"));
+    }
+}
+
+// dst, d3, src1, d1, src2, d2
+void ScalarCompiler::binarywise(xtended* foo, Type t1, Type t2, int idx, const string& dst, const vector<int>& d3,
+                                const string& src1, const vector<int>& d1, const string& src2, const vector<int>& d2)
+{
+    if (idx == 0) {
+        vector<string> args;
+        vector<Type>   types;
+        args.push_back(src1);
+        args.push_back(src2);
+        types.push_back(t1);
+        types.push_back(t2);
+
+        string exp = foo->old_generateCode(fClass, args, types);
+        fClass->addExecCode(Statement("", subst("$0 = $1;", dst, exp)));
+    } else {
+        fClass->addExecCode(Statement("",subst("for (int k$0=0; k$0<$1; k$0++) {", T(idx), T(d3[idx - 1]))));
+        if (idx > d1.size()) {
+            binarywise(foo, t1, t2, idx - 1, subst("$0.data[k$1]", dst, T(idx)), d3, src1, d1,
+                       subst("$0.data[k$1]", src2, T(idx)), d2);
+        } else if (idx > d2.size()) {
+            binarywise(foo, t1, t2, idx - 1, subst("$0.data[k$1]", dst, T(idx)), d3,
+                       subst("$0.data[k$1]", src1, T(idx)), d1, src2, d2);
+        } else {
+            binarywise(foo, t1, t2, idx - 1, subst("$0.data[k$1]", dst, T(idx)), d3,
+                       subst("$0.data[k$1]", src1, T(idx)), d1, subst("$0.data[k$1]", src2, T(idx)), d2);
+        }
+        fClass->addExecCode(Statement("","}"));
+    }
+}
+
+
 string ScalarCompiler::generateBinOp(Tree sig, int opcode, Tree arg1, Tree arg2)
 {
-    if (opcode == kDiv) {
-        // special handling for division, we always want a float division
-        Type t1 = getCertifiedSigType(arg1);
-        Type t2 = getCertifiedSigType(arg2);
+    Type t0 = getCertifiedSigType(sig);
+    Type t1 = getCertifiedSigType(arg1);
+    Type t2 = getCertifiedSigType(arg2);
 
-        interval j = t2->getInterval();
+    // get dimensions of arguments
+    vector<int> d1;
+    t1->dimensions(d1);
+    vector<int> d2;
+    t2->dimensions(d2);
 
-        if (j.haszero()) {
-            // potential division by zero
-            // interval    i = t1->getInterval();
-            // std::cerr << "WARNING : potential division by zero (" << i << "/" << j << ") in " << ppsig(sig) <<
-            // std::endl;
-        }
+    if ((d1.size() == 0) && (d2.size() == 0)) {
+        // we deal with scalars
+        if (opcode == kDiv) {
+            // special handling for division, we always want a float division
 
-        if (t1->nature() == kInt && t2->nature() == kInt) {
-            return generateCacheCode(
-                sig, subst("($3($0) $1 $3($2))", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
-        } else if (t1->nature() == kInt && t2->nature() == kReal) {
-            return generateCacheCode(sig,
-                                     subst("($3($0) $1 $2)", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
-        } else if (t1->nature() == kReal && t2->nature() == kInt) {
-            return generateCacheCode(sig,
-                                     subst("($0 $1 $3($2))", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
+            if (t1->nature() == kInt && t2->nature() == kInt) {
+                return generateCacheCode(
+                    sig, subst("($3($0) $1 $3($2))", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
+            } else if (t1->nature() == kInt && t2->nature() == kReal) {
+                return generateCacheCode(
+                    sig, subst("($3($0) $1 $2)", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
+            } else if (t1->nature() == kReal && t2->nature() == kInt) {
+                return generateCacheCode(
+                    sig, subst("($0 $1 $3($2))", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
+            } else {
+                return generateCacheCode(sig,
+                                         subst("($0 $1 $2)", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
+            }
         } else {
-            return generateCacheCode(sig,
-                                     subst("($0 $1 $2)", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2), ifloat()));
+            return generateCacheCode(sig, subst("($0 $1 $2)", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2)));
         }
     } else {
-        return generateCacheCode(sig, subst("($0 $1 $2)", CS(arg1), gBinOpTable[opcode]->fName, CS(arg2)));
+        // we have to deal with at least one vector
+        vector<int> d3;
+        if (maxdimensions(d1, d2, d3)) {
+            // vectors are compatibles
+            string src1   = CS(arg1);
+            string src2   = CS(arg2);
+            string vtname = declareCType(sig);
+            string dst    = getFreshID("V");
+            fClass->addZone2(subst("$0 $1;", vtname, dst));
+            fClass->addExecCode(Statement("", subst("if ($0) {", fRates->tick(sig))));
+            pointwise(gBinOpTable[opcode]->fName, d3.size(), dst, d3, src1, d1, src2, d2);
+            fClass->addExecCode(Statement("","}"));
+            return dst;
+        } else {
+            // incompatible
+            stringstream error;
+            error << "ERROR when compiling, uncompatible dimensions : " << ppsig(sig) << endl;
+            throw faustexception(error.str());
+        }
     }
 }
 
@@ -659,13 +773,32 @@ string ScalarCompiler::generateFFun(Tree sig, Tree ff, Tree largs)
 
 void ScalarCompiler::getTypedNames(Type t, const string& prefix, string& ctype, string& vname)
 {
-    if (t->nature() == kInt) {
-        ctype = "int";
-        vname = subst("i$0", getFreshID(prefix));
+    vector<int> D;
+    t->dimensions(D);
+
+    int dim = D.size();  // O is scalar
+    if (dim > 0) {
+        // t is a vector
+        for (int i = D.size() - 1; i >= 0; i--) {
+            ctype += "v" + T(D[i]);
+        }
+        if (t->nature() == kInt) {
+            ctype += "int";
+            vname = subst("vi$0", getFreshID(prefix));
+        } else {
+            ctype += ifloat();
+            vname = subst("vf$0", getFreshID(prefix));
+        }
     } else {
-        ctype = ifloat();
-        vname = subst("f$0", getFreshID(prefix));
+        if (t->nature() == kInt) {
+            ctype = "int";
+            vname = subst("i$0", getFreshID(prefix));
+        } else {
+            ctype = ifloat();
+            vname = subst("f$0", getFreshID(prefix));
+        }
     }
+    std::cerr << "CTYPE : " << ctype << std::endl;
 }
 
 string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
@@ -682,6 +815,11 @@ string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
     old_Occurences* o       = fOccMarkup->retrieve(sig);
     faustassert(o);
 
+    // check for expression occuring in a different rate expression, thus needing
+    // to be compiled in a separate statement event if they are not shared
+    int  rate     = fRates->rate(sig);
+    bool separate = (rate != o->getMinRate()) || (rate != o->getMaxRate());
+
 
     // check for expression occuring in delays
     if (o->getMaxDelay() > 0) {
@@ -692,7 +830,7 @@ string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
             return generateDelayVec(sig, exp, ctype, vname, o->getMaxDelay());
         }
 
-    } else if ((sharing > 1) || (o->hasMultiOccurences())) {
+    } else if ((sharing > 1) || (o->hasMultiOccurences()) || separate) {
         return generateVariableStore(sig, exp);
 
     } else if (sharing == 1) {
@@ -705,6 +843,46 @@ string ScalarCompiler::generateCacheCode(Tree sig, const string& exp)
     }
 
     return "Error in generateCacheCode";
+}
+
+// called by up and down
+string ScalarCompiler::generateSeparateCode(Tree sig, const string& exp)
+{
+    string      vname, ctype, code;
+    int         sharing = getSharingCount(sig);
+    old_Occurences* o       = fOccMarkup->retrieve(sig);
+    faustassert(0);
+
+    // check for expression occuring in delays
+    if (o->getMaxDelay() > 0) {
+        getTypedNames(getCertifiedSigType(sig), "Vec", ctype, vname);
+        if (sharing > 1) {
+            return generateDelayVec(sig, generateVariableStore(sig, exp), ctype, vname, o->getMaxDelay());
+        } else {
+            return generateDelayVec(sig, exp, ctype, vname, o->getMaxDelay());
+        }
+
+    } else {
+        return generateVariableStore(sig, exp);
+    }
+}
+
+string wrapPeriodicity(int p, const string& code)
+{
+    if (p == 1) {
+        return subst("$0;", code);
+    } else {
+        return subst("if ((i%$0)==0) { $1; }", T(p), code);
+    }
+}
+
+string wrapPostPeriodicity(int p, const string& code)
+{
+    if (p == 1) {
+        return subst("$0;", code);
+    } else {
+        return subst("if (((i+1)%$0)==0) { $1; }", T(p), code);
+    }
 }
 
 // like generateCacheCode but we force caching like if sharing was always > 1
@@ -754,7 +932,7 @@ string ScalarCompiler::generateVariableStore(Tree sig, const string& exp)
             // need to be preserved because of new enable and control primitives
             fClass->addDeclCode(subst("$0 \t$1;", ctype, vname));
             fClass->addInitCode(subst("$0 = 0;", vname));
-            fClass->addExecCode(Statement(getConditionCode(sig), subst("$0 = $1;", vname, exp)));
+            fClass->addExecCode(Statement(getConditionCode(sig), wrapPeriodicity(fRates->periodicity(sig), subst("$0 = $1", vname, exp))));
             break;
     }
     return vname;
@@ -1139,7 +1317,8 @@ void ScalarCompiler::generateRec(Tree sig, Tree var, Tree le)
     // generate delayline for each element of a recursive definition
     for (int i = 0; i < N; i++) {
         if (used[i]) {
-            generateDelayLine(ctype[i], vname[i], delay[i], CS(nth(le, i)), getConditionCode(nth(le, i)));
+            Tree s = nth(le, i);
+            generateDelayLine(s, ctype[i], vname[i], delay[i], CS(nth(le, i)), getConditionCode(nth(le, i)));
         }
     }
 }
@@ -1302,15 +1481,47 @@ string ScalarCompiler::generateXtended(Tree sig)
     vector<string> args;
     vector<Type>   types;
 
-    for (int i = 0; i < sig->arity(); i++) {
-        args.push_back(CS(sig->branch(i)));
-        types.push_back(getCertifiedSigType(sig->branch(i)));
-    }
+    Type        t = getCertifiedSigType(sig);
+    vector<int> D;
+    t->dimensions(D);
 
-    if (p->needCache()) {
-        return generateCacheCode(sig, p->old_generateCode(fClass, args, types));
+    if ((sig->arity() == 1) && (D.size() > 0)) {
+        string src    = CS(sig->branch(0));
+        string vtname = declareCType(sig);
+        string dst    = getFreshID("V");
+        fClass->addZone2(subst("$0 $1;", vtname, dst));
+        fClass->addExecCode(Statement("",subst("if ($0) {", fRates->tick(sig))));
+        unarywise(p, t, D.size(), dst, D, src);
+        fClass->addExecCode(Statement("","}"));
+        return dst;
+    } else if ((sig->arity() == 2) && (D.size() > 0)) {
+        string      src1 = CS(sig->branch(0));
+        string      src2 = CS(sig->branch(1));
+        Type        t1   = getCertifiedSigType(sig->branch(0));
+        Type        t2   = getCertifiedSigType(sig->branch(1));
+        vector<int> D1;
+        t1->dimensions(D1);
+        vector<int> D2;
+        t2->dimensions(D2);
+
+        string vtname = declareCType(sig);
+        string dst    = getFreshID("V");
+        fClass->addZone2(subst("$0 $1;", vtname, dst));
+        fClass->addExecCode(Statement("", subst("if ($0) {", fRates->tick(sig))));
+        binarywise(p, t1, t2, D.size(), dst, D, src1, D1, src2, D2);
+        fClass->addExecCode(Statement("","}"));
+        return dst;
     } else {
-        return p->old_generateCode(fClass, args, types);
+        for (int i = 0; i < sig->arity(); i++) {
+            args.push_back(CS(sig->branch(i)));
+            types.push_back(getCertifiedSigType(sig->branch(i)));
+        }
+
+        if (p->needCache()) {
+            return generateCacheCode(sig, p->old_generateCode(fClass, args, types));
+        } else {
+            return p->old_generateCode(fClass, args, types);
+        }
     }
 }
 
@@ -1362,6 +1573,8 @@ string ScalarCompiler::generateFixDelay(Tree sig, Tree exp, Tree delay)
     string code = CS(exp);  // ensure exp is compiled to have a vector name
     int mxd = fOccMarkup->retrieve(exp)->getMaxDelay();
     string vecname;
+
+    int period = fRates->periodicity(sig);
 
     if (!getVectorNameProperty(exp, vecname)) {
         if (mxd == 0) {
@@ -1416,6 +1629,8 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
 {
     faustassert(mxd > 0);
 
+    int p = fRates->periodicity(sig);
+
     // bool odocc = fOccMarkup->retrieve(sig)->hasOutDelayOccurences();
     string ccs = getConditionCode(sig);
 
@@ -1423,16 +1638,17 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
         // short delay : we copy
         fClass->addDeclCode(subst("$0 \t$1[$2];", ctype, vname, T(mxd + 1)));
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(mxd + 1)));
-        fClass->addExecCode(Statement(ccs, subst("$0[0] = $1;", vname, exp)));
+        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[0] = $1", vname, exp))));
 
         // generate post processing copy code to update delay values
         if (mxd == 1) {
-            fClass->addPostCode(Statement(ccs, subst("$0[1] = $0[0];", vname)));
+            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[1] = $0[0]", vname))));
         } else if (mxd == 2) {
             // fClass->addPostCode(subst("$0[2] = $0[1];", vname));
-            fClass->addPostCode(Statement(ccs, subst("$0[2] = $0[1]; $0[1] = $0[0];", vname)));
+            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[2] = $0[1]; $0[1] = $0[0]", vname))));
         } else {
-            fClass->addPostCode(Statement(ccs, subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1];", T(mxd), vname)));
+            fClass->addPostCode(
+                Statement(ccs, wrapPostPeriodicity(p, subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1]", T(mxd), vname))));
         }
         setVectorNameProperty(sig, vname);
         return subst("$0[0]", vname);
@@ -1449,9 +1665,9 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(N)));
 
         // execute
-        fClass->addExecCode(Statement(ccs, subst("$0[IOTA&$1] = $2;", vname, T(N - 1), exp)));
+        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[(IOTA/$3)&$1] = $2", vname, T(N - 1), exp, T(p)))));
         setVectorNameProperty(sig, vname);
-        return subst("$0[IOTA&$1]", vname, T(N - 1));
+        return subst("$0[(IOTA/$2)&$1]", vname, T(N - 1), T(p));
     }
 }
 
@@ -1459,14 +1675,16 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
  * Generate code for the delay mecchanism without using temporary variables
  */
 
-void ScalarCompiler::generateDelayLine(const string& ctype, const string& vname, int mxd, const string& exp,
+void ScalarCompiler::generateDelayLine(Tree sig, const string& ctype, const string& vname, int mxd, const string& exp,
                                        const string& ccs)
 {
+    int p = fRates->periodicity(sig);
     // faustassert(mxd > 0);
     if (mxd == 0) {
         // cerr << "MXD==0 :  " << vname << " := " << exp << endl;
         // no need for a real vector
-        fClass->addExecCode(Statement(ccs, subst("$0 \t$1 = $2;", ctype, vname, exp)));
+        fClass->addExecCode(Statement("",subst("$0 \t$1;", ctype, vname)));
+        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0 = $1", vname, exp))));
 
     } else if (mxd < gGlobal->gMaxCopyDelay) {
         // cerr << "small delay : " << vname << "[" << mxd << "]" << endl;
@@ -1474,15 +1692,16 @@ void ScalarCompiler::generateDelayLine(const string& ctype, const string& vname,
         // short delay : we copy
         fClass->addDeclCode(subst("$0 \t$1[$2];", ctype, vname, T(mxd + 1)));
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(mxd + 1)));
-        fClass->addExecCode(Statement(ccs, subst("$0[0] = $1;", vname, exp)));
+        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[0] = $1", vname, exp))));
 
         // generate post processing copy code to update delay values
         if (mxd == 1) {
-            fClass->addPostCode(Statement(ccs, subst("$0[1] = $0[0];", vname)));
+            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[1] = $0[0]", vname))));
         } else if (mxd == 2) {
-            fClass->addPostCode(Statement(ccs, subst("$0[2] = $0[1]; $0[1] = $0[0];", vname)));
+            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[2] = $0[1]; $0[1] = $0[0]", vname))));
         } else {
-            fClass->addPostCode(Statement(ccs, subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1];", T(mxd), vname)));
+            fClass->addPostCode(Statement(ccs,
+                wrapPostPeriodicity(p, subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1]", T(mxd), vname))));
         }
 
     } else {
@@ -1497,8 +1716,174 @@ void ScalarCompiler::generateDelayLine(const string& ctype, const string& vname,
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(N)));
 
         // execute
-        fClass->addExecCode(Statement(ccs, subst("$0[IOTA&$1] = $2;", vname, T(N - 1), exp)));
+        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[(IOTA/$3)&$1] = $2", vname, T(N - 1), exp, T(p)))));
     }
+}
+
+/**
+ * Generate up sampling code
+ */
+
+string ScalarCompiler::generateUpSample(Tree sig, Tree x, Tree n)
+{
+    return generateSeparateCode(sig, CS(x));
+    //    return CS(x);
+}
+
+/**
+ * Generate down sampling code
+ */
+
+string ScalarCompiler::generateDownSample(Tree sig, Tree x, Tree n)
+{
+    return generateSeparateCode(sig, CS(x));
+}
+
+
+/**
+ * Generate s = vectorize(n:int, x:(A,r))
+ *  A is the type of samples of x
+ *  r is the rate of x
+ *  c is the clock of x
+ *  tick(x) = clock(x)!=clock(x)'
+ *
+ *  decl: struct VnA { A data[n]; }
+ *  decl: VnA I1, I2, *Iw, *Ir;
+ *  init: Iw=&I1; Ir=&I2;
+ *  stmt: if (tick(x)) (*Iw).data[(clock(x)+(n-1))%n] = CS[[x]];
+ *  stmt: if (tick(s)) swap(Iw,Ir);
+ *  ------------------------------
+ *  rtrn: (*Ir)
+ */
+
+string ScalarCompiler::generateVectorize(Tree sig, Tree n, Tree x)
+{
+    int vsize;
+    if (isSigInt(n, &vsize)) {
+        string code = CS(x);
+        Type   t1   = getCertifiedSigType(sig);
+        string typ1 = declareCType(sig);
+        Type   t2   = getCertifiedSigType(x);
+        string typ2 = t2->typeName();
+        string id   = getFreshID("V");
+
+        fClass->addDeclCode(subst("$0    $1_1,$1_2,*$1w,*$1r;", typ1, id));
+        fClass->addInitCode(subst("$0w=&$0_1; $0r=&$0_2;", id));
+        fClass->addExecCode(Statement("",subst("if ($0) $5w->data[($1+$2)%$3]=$4;", fRates->tick(x), fRates->clock(x), T(vsize - 1),
+                                  T(vsize), code, id)));
+        fClass->addExecCode(Statement("", subst("if ($0) {$1* t=$2w; $2w=$2r; $2r=t;}", fRates->tick(sig), typ1, id)));
+        return generateCacheCode(sig, subst("(*$0r)", id));
+    } else {
+        return "vectorize error";
+    }
+}
+
+
+/**
+ * Generate Serialize
+ */
+
+string ScalarCompiler::generateSerialize(Tree sig, Tree x)
+{
+    string      code = CS(x);
+    Type        t1   = getCertifiedSigType(x);
+    VectorType* vt   = isVectorType(t1);
+    if (vt) {
+        return generateCacheCode(sig, subst("$0.data[$1%$2]", code, fRates->clock(sig), T(vt->size())));
+    } else {
+        return "error serialize";
+    }
+    //(*RD).data[i%5];
+}
+
+/**
+ * declareCType(sig) : generate c++ declaration for the type of sig.
+ * the declaration is added to the class only if it is a vector type
+ * not declared yet.
+ *
+ */
+string ScalarCompiler::declareCType(Tree sig)
+{
+    return declareCType(getCertifiedSigType(sig));
+    /*
+    Type t = getCertifiedSigType(sig);
+    string vtname = t->typeName();
+    if (fDeclaredTypes.count(vtname)==0) {
+        VectorType* vt = isVectorType(t);
+        if (vt) {
+            string ctname = declareCType()
+            string decl = subst("struct $0 { $2 data[$1]; $0(int n=0) { for(int i=0;i<$1;i++) data[i]=0;} };", vtname,
+    T(vt->size()), vt->content()->typeName());
+            //std::cerr << "DECLARATION : " << decl << std::endl;
+            fClass->addDeclCode(decl);
+        }
+        fDeclaredTypes.insert(vtname);
+    }
+    return vtname;
+    */
+}
+
+string ScalarCompiler::declareCType(Type t)
+{
+    string vtname = t->typeName();
+    if (fDeclaredTypes.count(vtname) == 0) {
+        VectorType* vt = isVectorType(t);
+        if (vt) {
+            string ctname = declareCType(vt->content());
+            string decl   = subst("struct $0 { $2 data[$1]; $0(int n=0) { for(int i=0;i<$1;i++) data[i]=0;} };", vtname,
+                                T(vt->size()), ctname);
+            // std::cerr << "DECLARATION : " << decl << std::endl;
+            fClass->addDeclCode(decl);
+        }
+        fDeclaredTypes.insert(vtname);
+    }
+    return vtname;
+}
+
+/**
+ * Generate Concat
+ * 			// vTemp4 = concat(vTemp1,vTemp3)
+ *           if ((i%5)==0) {
+ *				for (int j=0; j<3; j++) vTemp4.data[j]   = vTemp1.data[j];
+ *				for (int j=0; j<2; j++) vTemp4.data[j+3] = vTemp3.data[j];
+ *			}
+ */
+string ScalarCompiler::generateConcat(Tree sig, Tree x, Tree y)
+{
+    string      c1 = CS(x);
+    string      c2 = CS(y);
+    Type        t1 = getCertifiedSigType(sig);
+    Type        tx = getCertifiedSigType(x);
+    Type        ty = getCertifiedSigType(y);
+    VectorType* vt = isVectorType(t1);
+    VectorType* vx = isVectorType(tx);
+    VectorType* vy = isVectorType(ty);
+    if (vt && vx && vy) {
+        string vtname = declareCType(sig);
+        string id     = getFreshID("V");
+
+        // create temporary variable to store the concatenation
+        fClass->addZone2(subst("$0 $1;", vtname, id));
+        fClass->addExecCode(Statement("",
+            subst("if ($0) { for (int j=0; j<$1; j++) $2.data[j] = $3.data[j]; for (int j=0; j<$4; j++) $2.data[j+$1] "
+                  "= $5.data[j]; }",
+                  fRates->tick(sig), T(vx->size()), id, c1, T(vy->size()), c2)));
+        return id;
+    } else {
+        return "concat internal error";
+    }
+}
+
+
+/**
+ * Generate vector access
+ */
+
+string ScalarCompiler::generateVectorAt(Tree sig, Tree x, Tree y)
+{
+    string c1 = CS(x);
+    string c2 = CS(y);
+    return subst("$0.data[$1]", c1, c2);
 }
 
 /**

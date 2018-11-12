@@ -28,6 +28,7 @@
 #include "garbageable.hh"
 #include "interval.hh"
 #include "smartpointer.hh"
+#include "Text.hh"
 #include "tree.hh"
 
 /*********************************************************************
@@ -133,7 +134,7 @@ class AudioType : public virtual Garbageable {
 
     virtual AudioType* dimensions(
             vector<int>& D)       = 0;  /// Fill D with the dimensions of the type and returns its base type
-
+    virtual string typeName() = 0;  /// return a string representing a valid C++ typename
    protected:
     void setInterval(const interval& r) { fInterval = r; }
 };
@@ -276,6 +277,15 @@ class SimpleType : public AudioType {
         return this;
     }  // scalar have no dimensions
 
+    virtual string typeName()
+    {
+        if (fNature == kInt) {
+            return "int";
+        } else {
+            return "float";
+        }
+    }
+
     virtual bool isMaximal() const;  ///< true when type is maximal (and therefore can't change depending of hypothesis)
 };
 
@@ -392,6 +402,7 @@ class TableType : public AudioType {
         return this;
     }  // tables have no dimensions
 
+    virtual string typeName() { return "tabletype!!!"; }
 
     virtual bool isMaximal() const;  ///< true when type is maximal (and therefore can't change depending of hypothesis)
 };
@@ -460,6 +471,8 @@ class TupletType : public AudioType {
         return this;
     }  // tuples have no dimensions
 
+    virtual string typeName() { return "tupletype!!!"; }
+
     virtual bool isMaximal() const;  ///< true when type is maximal (and therefore can't change depending of hypothesis)
 };
 
@@ -525,7 +538,7 @@ class VectorType : public AudioType {
     }  ///< vectors have a dimension
 
     string         generateDeclaration();
-    //virtual string typeName() { return subst("v$0$1", T(fSize), fContent->typeName()); }
+    virtual string typeName() { return subst("v$0$1", T(fSize), fContent->typeName()); }
 };
 
 Type makeVectorType(const Type& b, const vector<int>& dim);

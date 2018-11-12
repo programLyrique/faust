@@ -1495,3 +1495,25 @@ void Klass::collectLibrary(set<string>& S)
     for (k = fSubClassList.begin(); k != fSubClassList.end(); k++) (*k)->collectLibrary(S);
     merge(S, fLibrarySet);
 }
+
+string Klass::getInputRateString()
+{
+    string s("{");
+    for (int i = 0; i < fNumInputs; i++) {
+        if (i > 0) s += ',';
+        s += T(fInputRate[i]);
+    }
+    s += '}';
+    return s;
+}
+
+string Klass::getOutputRateString()
+{
+    string s("{");
+    for (int i = 0; i < fNumOutputs; i++) {
+        if (i > 0) s += ',';
+        s += T(fOutputRate[i]);
+    }
+    s += '}';
+    return s;
+}

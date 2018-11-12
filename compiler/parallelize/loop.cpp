@@ -100,6 +100,7 @@ static void printlines(int n, list<Statement>& lines, ostream& fout)
  */
 Loop::Loop(Tree recsymbol, Loop* encl, const string& size)
     : fIsRecursive(true),
+      fCommonRate(1),
       fRecSymbolSet(singleton(recsymbol)),
       fEnclosingLoop(encl),
       fSize(size),
@@ -117,6 +118,7 @@ Loop::Loop(Tree recsymbol, Loop* encl, const string& size)
  */
 Loop::Loop(Loop* encl, const string& size)
     : fIsRecursive(false),
+      fCommonRate(1),
       fRecSymbolSet(gGlobal->nil),
       fEnclosingLoop(encl),
       fSize(size),
@@ -157,6 +159,14 @@ void Loop::addPreCode(const Statement& stmt)
 {
     // cerr << this << "->addExecCode " << str << endl;
     fPreCode.push_back(stmt);
+}
+
+/**
+ * Add a line of pre code  (begin of the loop)
+ */
+void Loop::setCommonRate(int rate)
+{
+    fCommonRate = rate;
 }
 
 /**
@@ -311,7 +321,13 @@ void Loop::printoneln(int n, ostream& fout)
                 }*/
 
         tab(n, fout);
-        fout << "for (int i=0; i<" << fSize << "; i++) {";
+        if (fCommonRate == 1) {
+            tab(n, fout);
+            fout << "for (int i=0; i<" << fSize << "; i++) {";
+        } else {
+            tab(n, fout);
+            fout << "for (int i=0; i<" << fSize << "*" << fCommonRate << "; i++) {";
+        }
         if (fPreCode.size() > 0) {
             tab(n + 1, fout);
             fout << "// pre processing";

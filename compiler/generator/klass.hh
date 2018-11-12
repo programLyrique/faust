@@ -62,8 +62,11 @@ class Klass  //: public Target
     string fSuperKlassName;
     int    fNumInputs;
     int    fNumOutputs;
+    map<int, int> fInputRate;    ///< used to collect inputs rate
+    map<int, int> fOutputRate;   ///< used to collect outputs rate
     int    fNumActives;   ///< number of active controls in the UI (sliders, buttons, etc.)
     int    fNumPassives;  ///< number of passive widgets in the UI (bargraphs, etc.)
+    int    fCommonRate;
 
     set<string> fIncludeFileSet;
     set<string> fLibrarySet;
@@ -183,6 +186,7 @@ class Klass  //: public Target
     void addZone3(const string& str) { fZone3Code.push_back(str); }
     void addZone4(const string& str) { fZone4Code.push_back(str); }
 
+    void setCommonRate(int rate) { fTopLoop->setCommonRate(rate); }
     void addPreCode(const Statement& stmt) { fTopLoop->addPreCode(stmt); }
     void addExecCode(const Statement& stmt) { fTopLoop->addExecCode(stmt); }
     void addPostCode(const Statement& stmt) { fTopLoop->addPostCode(stmt); }
@@ -220,6 +224,12 @@ class Klass  //: public Target
 
     int inputs() { return fNumInputs; }
     int outputs() { return fNumOutputs; }
+
+    // management on input and output rates
+    void   setInputRate(int i, int r) { fInputRate[i] = r; }
+    void   setOutputRate(int i, int r) { fOutputRate[i] = r; }
+    string getInputRateString();   ///< string of type "{r1,r2,...}"
+    string getOutputRateString();  ///< string of type "{r1,r2,...}"
 };
 
 class SigIntGenKlass : public Klass {

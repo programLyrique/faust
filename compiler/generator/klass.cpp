@@ -846,6 +846,12 @@ void Klass::println(int n, ostream& fout)
     fout << "virtual int getNumOutputs() { "
          << "return " << fNumOutputs << "; }";
 
+     tab(n + 1, fout);
+     fout << "virtual int getInputRate (int i) \t{int rate[]=" << getInputRateString() << "; return rate[i]; }";
+     tab(n + 1, fout);
+     fout << "virtual int getOutputRate(int i) \t{int rate[]=" << getOutputRateString() << "; return rate[i]; }";
+
+
     tab(n + 1, fout);
     fout << "static void classInit(int samplingFreq) {";
     printlines(n + 2, fStaticInitCode, fout);

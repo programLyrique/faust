@@ -1756,7 +1756,7 @@ string ScalarCompiler::generateDownSample(Tree sig, Tree x, Tree n)
  *  rtrn: (*Ir)
  */
 
-string ScalarCompiler::generateVectorize(Tree sig, Tree n, Tree x)
+string ScalarCompiler::generateVectorize(Tree sig, Tree x, Tree n)
 {
     int vsize;
     if (isSigInt(n, &vsize)) {
@@ -1774,7 +1774,9 @@ string ScalarCompiler::generateVectorize(Tree sig, Tree n, Tree x)
         fClass->addExecCode(Statement("", subst("if ($0) {$1* t=$2w; $2w=$2r; $2r=t;}", fRates->tick(sig), typ1, id)));
         return generateCacheCode(sig, subst("(*$0r)", id));
     } else {
-        return "vectorize error";
+        stringstream error;
+        error << "ERROR in generateVectorize : " << ppsig(n) << " is not an integer expression " << endl;
+        throw faustexception(error.str());
     }
 }
 
@@ -1791,7 +1793,9 @@ string ScalarCompiler::generateSerialize(Tree sig, Tree x)
     if (vt) {
         return generateCacheCode(sig, subst("$0.data[$1%$2]", code, fRates->clock(sig), T(vt->size())));
     } else {
-        return "error serialize";
+        stringstream error;
+        error << "ERROR in generateSerialize : " << ppsig(x) << " does not have a vector type " << endl;
+        throw faustexception(error.str());
     }
     //(*RD).data[i%5];
 }
@@ -1870,7 +1874,9 @@ string ScalarCompiler::generateConcat(Tree sig, Tree x, Tree y)
                   fRates->tick(sig), T(vx->size()), id, c1, T(vy->size()), c2)));
         return id;
     } else {
-        return "concat internal error";
+        stringstream error;
+        error << "ERROR in generateConcat : " << " one of the expression does not have vector type. " << endl;
+        throw faustexception(error.str());
     }
 }
 

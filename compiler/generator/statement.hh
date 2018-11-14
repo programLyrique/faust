@@ -37,7 +37,8 @@ class Statement {
     const string fCode;
 
    public:
-    Statement(const string& condition, const string& code) : fHasCondition(true), fCondition(condition), fCode(code) {}
+    Statement(const string& condition, const string& code) : fHasCondition(condition != "" && condition != "true"), fCondition(condition), fCode(code) {
+    }
 
     bool          hasCondition() { return fHasCondition; }
     bool          hasCondition(const string& cond) { return (fCondition == cond); }

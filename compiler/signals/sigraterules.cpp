@@ -863,7 +863,7 @@ string RateInferrer::tick(Tree sig)  ///< returns sig's C tick expression  : T_{
 {
     int p = periodicity(sig);
     if (p > 1) {
-        return subst("((i%$0)==0)", T(p));
+        return subst("(i%$0)==0", T(p));
     } else {
         return "true";
     }

@@ -867,12 +867,13 @@ string ScalarCompiler::generateSeparateCode(Tree sig, const string& exp)
     }
 }
 
+
 string wrapPeriodicity(int p, const string& code)
 {
     if (p == 1) {
         return subst("$0;", code);
     } else {
-        return subst("if ((i%$0)==0) { $1; }", T(p), code);
+        return subst("if ((i%$0)==0) {$1; }", T(p), code);
     }
 }
 
@@ -881,7 +882,31 @@ string wrapPostPeriodicity(int p, const string& code)
     if (p == 1) {
         return subst("$0;", code);
     } else {
-        return subst("if (((i+1)%$0)==0) { $1; }", T(p), code);
+        return subst("if (((i+1)%$0)==0) {$1;}", T(p), code);
+    }
+}
+
+//To use to wrap a condition of a Statement
+string wrapCondPeriodicity(int p, const string& css) {
+    if (p == 1) {
+        return css;
+    }
+    else if (css == "") {
+        return subst("(i%$0)==0", T(p));
+    }
+    else  {
+        return subst("($0) && ((i%$1)==0)", css, T(p));
+    }
+}
+
+//To use to wrap a condition of a Statement
+string wrapCondPostPeriodicity(int p, const string& css) {
+    if (p == 1) {
+        return css;
+    } else if (css == "") {
+        return subst("((i+1)%$0)==0", T(p));
+    }else {
+        return subst("($0) && (((i+1)%$1)==0)", css, T(p));
     }
 }
 
@@ -932,7 +957,7 @@ string ScalarCompiler::generateVariableStore(Tree sig, const string& exp)
             // need to be preserved because of new enable and control primitives
             fClass->addDeclCode(subst("$0 \t$1;", ctype, vname));
             fClass->addInitCode(subst("$0 = 0;", vname));
-            fClass->addExecCode(Statement(getConditionCode(sig), wrapPeriodicity(fRates->periodicity(sig), subst("$0 = $1", vname, exp))));
+            fClass->addExecCode(Statement(wrapCondPeriodicity(fRates->periodicity(sig), getConditionCode(sig)), subst("$0 = $1", vname, exp)));
             break;
     }
     return vname;
@@ -1638,17 +1663,17 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
         // short delay : we copy
         fClass->addDeclCode(subst("$0 \t$1[$2];", ctype, vname, T(mxd + 1)));
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(mxd + 1)));
-        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[0] = $1", vname, exp))));
+        fClass->addExecCode(Statement(wrapCondPeriodicity(p, ccs), subst("$0[0] = $1", vname, exp)));
 
         // generate post processing copy code to update delay values
         if (mxd == 1) {
-            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[1] = $0[0]", vname))));
+            fClass->addPostCode(Statement(wrapCondPostPeriodicity(p, ccs), subst("$0[1] = $0[0]", vname)));
         } else if (mxd == 2) {
             // fClass->addPostCode(subst("$0[2] = $0[1];", vname));
-            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[2] = $0[1]; $0[1] = $0[0]", vname))));
+            fClass->addPostCode(Statement(wrapCondPostPeriodicity(p, ccs), subst("$0[2] = $0[1]; $0[1] = $0[0]", vname)));
         } else {
             fClass->addPostCode(
-                Statement(ccs, wrapPostPeriodicity(p, subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1]", T(mxd), vname))));
+                Statement(wrapCondPostPeriodicity(p, ccs), subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1]", T(mxd), vname)));
         }
         setVectorNameProperty(sig, vname);
         return subst("$0[0]", vname);
@@ -1665,7 +1690,7 @@ string ScalarCompiler::generateDelayVecNoTemp(Tree sig, const string& exp, const
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(N)));
 
         // execute
-        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[(IOTA/$3)&$1] = $2", vname, T(N - 1), exp, T(p)))));
+        fClass->addExecCode(Statement(wrapCondPeriodicity(p, ccs), subst("$0[(IOTA/$3)&$1] = $2", vname, T(N - 1), exp, T(p))));
         setVectorNameProperty(sig, vname);
         return subst("$0[(IOTA/$2)&$1]", vname, T(N - 1), T(p));
     }
@@ -1684,7 +1709,7 @@ void ScalarCompiler::generateDelayLine(Tree sig, const string& ctype, const stri
         // cerr << "MXD==0 :  " << vname << " := " << exp << endl;
         // no need for a real vector
         fClass->addExecCode(Statement("",subst("$0 \t$1;", ctype, vname)));
-        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0 = $1", vname, exp))));
+        fClass->addExecCode(Statement(wrapCondPeriodicity(p, ccs), subst("$0 = $1", vname, exp)));
 
     } else if (mxd < gGlobal->gMaxCopyDelay) {
         // cerr << "small delay : " << vname << "[" << mxd << "]" << endl;
@@ -1692,16 +1717,16 @@ void ScalarCompiler::generateDelayLine(Tree sig, const string& ctype, const stri
         // short delay : we copy
         fClass->addDeclCode(subst("$0 \t$1[$2];", ctype, vname, T(mxd + 1)));
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(mxd + 1)));
-        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[0] = $1", vname, exp))));
+        fClass->addExecCode(Statement(wrapCondPeriodicity(p, ccs), subst("$0[0] = $1", vname, exp)));
 
         // generate post processing copy code to update delay values
         if (mxd == 1) {
-            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[1] = $0[0]", vname))));
+            fClass->addPostCode(Statement(wrapCondPostPeriodicity(p, ccs), subst("$0[1] = $0[0]", vname)));
         } else if (mxd == 2) {
-            fClass->addPostCode(Statement(ccs, wrapPostPeriodicity(p, subst("$0[2] = $0[1]; $0[1] = $0[0]", vname))));
+            fClass->addPostCode(Statement(wrapCondPostPeriodicity(p, ccs), subst("$0[2] = $0[1]; $0[1] = $0[0]", vname)));
         } else {
-            fClass->addPostCode(Statement(ccs,
-                wrapPostPeriodicity(p, subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1]", T(mxd), vname))));
+            fClass->addPostCode(Statement(wrapCondPostPeriodicity(p, ccs),
+                subst("for (int i=$0; i>0; i--) $1[i] = $1[i-1]", T(mxd), vname)));
         }
 
     } else {
@@ -1716,7 +1741,7 @@ void ScalarCompiler::generateDelayLine(Tree sig, const string& ctype, const stri
         fClass->addClearCode(subst("for (int i=0; i<$1; i++) $0[i] = 0;", vname, T(N)));
 
         // execute
-        fClass->addExecCode(Statement(ccs, wrapPeriodicity(p, subst("$0[(IOTA/$3)&$1] = $2", vname, T(N - 1), exp, T(p)))));
+        fClass->addExecCode(Statement(wrapCondPeriodicity(p,ccs),  subst("$0[(IOTA/$3)&$1] = $2", vname, T(N - 1), exp, T(p))));
     }
 }
 
@@ -1769,9 +1794,9 @@ string ScalarCompiler::generateVectorize(Tree sig, Tree x, Tree n)
 
         fClass->addDeclCode(subst("$0    $1_1,$1_2,*$1w,*$1r;", typ1, id));
         fClass->addInitCode(subst("$0w=&$0_1; $0r=&$0_2;", id));
-        fClass->addExecCode(Statement("",subst("if ($0) $5w->data[($1+$2)%$3]=$4;", fRates->tick(x), fRates->clock(x), T(vsize - 1),
+        fClass->addExecCode(Statement(fRates->tick(x), subst("$5w->data[($1+$2)%$3]=$4;", "", fRates->clock(x), T(vsize - 1),
                                   T(vsize), code, id)));
-        fClass->addExecCode(Statement("", subst("if ($0) {$1* t=$2w; $2w=$2r; $2r=t;}", fRates->tick(sig), typ1, id)));
+        fClass->addExecCode(Statement(fRates->tick(sig), subst("$1* t=$2w; $2w=$2r; $2r=t;", "", typ1, id)));
         return generateCacheCode(sig, subst("(*$0r)", id));
     } else {
         stringstream error;
@@ -1868,10 +1893,10 @@ string ScalarCompiler::generateConcat(Tree sig, Tree x, Tree y)
 
         // create temporary variable to store the concatenation
         fClass->addZone2(subst("$0 $1;", vtname, id));
-        fClass->addExecCode(Statement("",
-            subst("if ($0) { for (int j=0; j<$1; j++) $2.data[j] = $3.data[j]; for (int j=0; j<$4; j++) $2.data[j+$1] "
-                  "= $5.data[j]; }",
-                  fRates->tick(sig), T(vx->size()), id, c1, T(vy->size()), c2)));
+        fClass->addExecCode(Statement(fRates->tick(sig),
+            subst("for (int j=0; j<$1; j++) $2.data[j] = $3.data[j]; for (int j=0; j<$4; j++) $2.data[j+$1] "
+                  "= $5.data[j];",
+                  "", T(vx->size()), id, c1, T(vy->size()), c2)));
         return id;
     } else {
         stringstream error;

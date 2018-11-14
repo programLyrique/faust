@@ -56,39 +56,44 @@ static void tab(int n, ostream& fout)
 static void printlines(int n, list<Statement>& lines, ostream& fout)
 {
     list<Statement>::iterator s;
-    string                    ccond = "";
-    for (s = lines.begin(); s != lines.end(); s++) {
-        if (s->hasCondition(ccond)) {
-            tab(n, fout);
-            fout << s->code();
-        } else if (ccond == "") {
-            // debut d'une condition
-            ccond = s->condition();
-            tab(n, fout);
-            fout << "if (" << ccond << ") {";
-            n++;
-            tab(n, fout);
-            fout << s->code();
-        } else {
-            // fin précédente condition
-            n--;
-            tab(n, fout);
-            fout << "}";
-            // nouvelle condition courante
-            ccond = s->condition();
-            if (ccond != "") {
+    string                    cond = "";
+    string                    pred = "NONE";
+    for (auto s : lines) {
+        cond = s.condition();
+        if(s.hasCondition())
+        {
+            // We have a conditional statement
+            if(cond != pred) {
+                // with a different condition from the current one
+                if(pred != "NONE") {
+                    // There is a previously open if-statement that we need to close
+                    tab(n, fout);
+                    fout << "}";
+                }
+                // we need to open a new if-statement
                 tab(n, fout);
-                fout << "if (" << ccond << ") {";
-                n++;
+                fout << "if (" << cond << ") {" ;
+            }
+            tab(n + 1, fout);
+            fout << s.code();
+            pred = cond;
+        } else {
+            // we have an unconditional statement
+            if (pred != "NONE") {
+                // There is a previously open if-statement that we need to close
+                tab(n, fout);
+                fout << "}";
+                pred = "NONE";
             }
             tab(n, fout);
-            fout << s->code();
+            fout << s.code();
         }
     }
-    if (ccond != "") {
-        n--;
+    if (pred != "NONE") {
+    // There is a previously open if-statement that we need to close
         tab(n, fout);
         fout << "}";
+        pred = "NONE";
     }
 }
 
